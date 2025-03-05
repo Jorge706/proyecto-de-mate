@@ -19,5 +19,5 @@ pip install numpy matplotlib sympy
 Para ejecutar el script, abre la terminal en la carpeta donde se encuentra el archivo `main.py` y ejecuta:
 
 ```bash
-python3 main.**py**
+python3 main.py
 ```
