@@ -245,4 +245,23 @@ h_entry = tk.Entry(root, font=("Arial", 18))
 h_entry.grid(row=3, column=1, sticky='w')
 tk.Label(root, text='Ej: 0.1', font=("Arial", 18)).grid(row=3, column=2, sticky='w')
 
-tk.Label(root, text='xn:', font=("Arial", 20)).grid(row=4, column=0, s
+tk.Label(root, text='xn:', font=("Arial", 20)).grid(row=4, column=0, sticky='e')
+xn_entry = tk.Entry(root, font=("Arial", 18))
+xn_entry.grid(row=4, column=1, sticky='w')
+tk.Label(root, text='Ej: 2', font=("Arial", 18)).grid(row=4, column=2, sticky='w')
+
+# Métodos
+tk.Label(root, text='Método:', font=("Arial", 20)).grid(row=5, column=0, sticky='e')
+tk.Radiobutton(root, text='Euler', variable=metodo_var, value='Euler', font=("Arial", 18)).grid(row=5, column=1, sticky='w')
+tk.Radiobutton(root, text='Euler Mejorado', variable=metodo_var, value='Euler Mejorado', font=("Arial", 18)).grid(row=6, column=1, sticky='w')
+tk.Radiobutton(root, text='Runge-Kutta', variable=metodo_var, value='Runge-Kutta', font=("Arial", 18)).grid(row=7, column=1, sticky='w')
+
+# Botones
+tk.Button(root, text='Resolver', font=("Arial", 18), command=resolver).grid(row=8, column=1, sticky='w')
+tk.Button(root, text='Reiniciar', font=("Arial", 18), command=reiniciar).grid(row=8, column=2, sticky='w')
+
+# Descripción de uso
+descripcion = "Ingrese la ecuación en términos de x e y. Establezca los valores iniciales (x0, y0), el paso (h) y el valor final (xn). Seleccione un método y presione 'Resolver'."
+tk.Label(root, text=descripcion, font=("Arial", 16), wraplength=580, justify='left').grid(row=9, column=0, columnspan=3, pady=10)
+
+root.mainloop()
