@@ -24,66 +24,203 @@ def euler(f, x0, y0, h, xn, expr):
 
 # Método de Euler Mejorado
 def euler_mejorado(f, x0, y0, h, xn, expr):
-    x_values = [x0]
+    if h <= 0 or x0 >= xn:
+        messagebox.showerror('Error', 'El valor de h debe ser positivo y x0 debe ser menor que xn')
+        return [], []
+    
+    x_values = [round(x0,1)]
     y_values = [y0]
+    k1_values = []
+    y_pred_values = []
+    k2_values = []
+    y_siguiente_values = []
+    
     while x0 < xn:
         k1 = f(x0, y0, expr)
         k2 = f(x0 + h, y0 + h * k1, expr)
-        y0 += (h / 2) * (k1 + k2)
+        
+        # Valores de k1, k2, y_pred, y_siguiente
+        k1_values.append(k1)
+        y_pred = y0 + h * k1  # predicción de y
+        y_pred_values.append(y_pred)
+        k2_values.append(k2)
+        y_siguiente = y0 + (h / 2) * (k1 + k2)  # valor de y siguiente
+        y_siguiente_values.append(y_siguiente)
+        
+        y0 = y_siguiente  # actualiza y0 con el valor siguiente
         x0 += h
-        x_values.append(x0)
+        
+        # Agrega x y y a las listas
+        x_values.append(round(x0, 1))
         y_values.append(y0)
+
+    # Crear ventana de resultados
+    resultados_window = tk.Toplevel()
+    resultados_window.title("Resultados Euler Mejorado")
+
+    # Configurar la tabla
+    tree = ttk.Treeview(resultados_window, columns=("Paso", "x", "y", "k1", "y_pred", "k2", "y_siguiente"), show='headings')
+    tree.heading("Paso", text="Paso")
+    tree.heading("x", text="x")
+    tree.heading("y", text="y")
+    tree.heading("k1", text="k1")
+    tree.heading("y_pred", text="y_pred")
+    tree.heading("k2", text="k2")
+    tree.heading("y_siguiente", text="y_siguiente")
+    tree.pack(expand=True, fill='both')
+
+    for paso, (x, y, k1, y_pred, k2, y_siguiente) in enumerate(zip(x_values, y_values, k1_values, y_pred_values, k2_values, y_siguiente_values)):
+        tree.insert("", "end", values=(paso, x, y, k1, y_pred, k2, y_siguiente))
+
+    # Graficar los resultados
+    plt.plot(x_values, y_values, marker='o', label='Euler Mejorado')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.title('Método de Euler Mejorado')
+    plt.legend()
+    plt.grid()
+    plt.show()
+
     return x_values, y_values
 
 # Método de Runge-Kutta de cuarto orden
 def runge_kutta(f, x0, y0, h, xn, expr):
-    x_values = [x0]
+    x_values = [round(x0, 1)]
     y_values = [y0]
+    resultados = []  # Guardar valores para la tabla
+    paso = 0
+
     while x0 < xn:
         k1 = h * f(x0, y0, expr)
         k2 = h * f(x0 + h/2, y0 + k1/2, expr)
         k3 = h * f(x0 + h/2, y0 + k2/2, expr)
         k4 = h * f(x0 + h, y0 + k3, expr)
-        y0 += (k1 + 2*k2 + 2*k3 + k4) / 6
+
+        y_siguiente = y0 + (k1 + 2*k2 + 2*k3 + k4) * h / 6
+        resultados.append((paso, round(x0, 1), y0, k1, k2, k3, k4, y_siguiente))
+
+        # Actualizar valores
+        y0 = y_siguiente
         x0 += h
-        x_values.append(x0)
+        x_values.append(round(x0, 1))
         y_values.append(y0)
-    return x_values, y_values
+        paso += 1
+
+    # Crear ventana de resultados
+    resultados_window = tk.Toplevel()
+    resultados_window.title("Resultados Runge-Kutta")
+
+    # Configurar la tabla
+    tree = ttk.Treeview(resultados_window, columns=("Paso", "x", "y", "k1", "k2", "k3", "k4", "y_siguiente"), show='headings')
+    tree.heading("Paso", text="Paso")
+    tree.heading("x", text="x")
+    tree.heading("y", text="y")
+    tree.heading("k1", text="k1")
+    tree.heading("k2", text="k2")
+    tree.heading("k3", text="k3")
+    tree.heading("k4", text="k4")
+    tree.heading("y_siguiente", text="y_siguiente")
+    tree.pack(expand=True, fill='both')
+
+    for resultado in resultados:
+        tree.insert("", "end", values=resultado)
+
+    # Graficar los resultados
+    plt.plot(x_values, y_values, marker='o', label='Runge-Kutta')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.title('Método de Runge-Kutta')
+    plt.legend()
+    plt.grid()
+    plt.show() 
+
 # newton rambson
+def newton_raphson(f, x0, tol, max_iter=100):
+    x = sp.symbols('x')
+    f_prime = sp.diff(f, x)  # Derivada de f
+    f_lambdified = sp.lambdify(x, f, "numpy")  # Convertir f a función evaluable
+    f_prime_lambdified = sp.lambdify(x, f_prime, "numpy")  # Convertir f' a función evaluable
+    
+    x_n = x0  # Valor inicial
+    
+    # Crear ventana de resultados
+    resultados_window = tk.Toplevel()
+    resultados_window.title("Resultados Newton-Raphson")
+
+    # Configurar la tabla
+    tree = ttk.Treeview(resultados_window, columns=("Iteración", "x_n", "f(x_n)", "f'(x_n)", "x_nuevo", "Error"), show='headings')
+    tree.heading("Iteración", text="Iteración")
+    tree.heading("x_n", text="x_n")
+    tree.heading("f(x_n)", text="f(x_n)")
+    tree.heading("f'(x_n)", text="f'(x_n)")
+    tree.heading("x_nuevo", text="x_nuevo")
+    tree.heading("Error", text="Error")
+    tree.pack(expand=True, fill='both')
+
+    x_vals = []
+    y_vals = []
+
+
+    for i in range(max_iter):
+        f_val = f_lambdified(x_n)
+        f_prime_val = f_prime_lambdified(x_n)
+
+        if abs(f_prime_val) < 1e-12:  # Evitar división por cero
+            messagebox.showerror("Error", "Derivada cercana a cero, posible punto crítico o falta de convergencia.")
+            return
+
+        x_n1 = x_n - f_val / f_prime_val  # Fórmula de Newton-Raphson
+        error = abs(x_n1 - x_n)  # Calcular el error
+
+        # Insertar valores en la tabla
+        tree.insert("", "end", values=(i, round(x_n, 6), round(f_val, 6), round(f_prime_val, 6), round(x_n1, 6), round(error, 6)))
+
+        x_vals.append(x_n)
+        y_vals.append(f_val)
+
+        if abs(x_n1 - x_n) < tol:  # Criterio de convergencia
+            break  # Salir del bucle si la tolerancia se cumple
+
+        x_n = x_n1  # Actualizar x_n
+    tree.insert("", "end", values=(round(x_n1, 6),0,0,0,0))
+
+    # Graficar los resultados
+    plt.plot(x_vals, y_vals, marker='o', label='Newton-Raphson')
+    plt.xlabel('x')
+    plt.ylabel('f(x)')
+    plt.title('Método de Newton-Raphson')
+    plt.legend()
+    plt.grid()
+    plt.show()
 
 # Función para resolver y graficar
 def resolver():
     try:
         expr = sp.sympify(equation_entry.get())
         x0 = float(x0_entry.get())
-        y0 = float(y0_entry.get())
-        h = float(h_entry.get())
-        xn = float(xn_entry.get())
         metodo = metodo_var.get()
+
+        if metodo != 'Newton-Raphson':
+            y0 = float(y0_entry.get())
+            h = float(h_entry.get())
+            xn = float(xn_entry.get())
+        else:
+            tol = float(tol_entry.get()) 
         
         if metodo == 'Euler':
-            x_vals, y_vals = euler(f, x0, y0, h, xn, expr)
+            euler(f, x0, y0, h, xn, expr)
         elif metodo == 'Euler Mejorado':
-            x_vals, y_vals = euler_mejorado(f, x0, y0, h, xn, expr)
+            euler_mejorado(f, x0, y0, h, xn, expr)
         elif metodo == 'Runge-Kutta':
-            x_vals, y_vals = runge_kutta(f, x0, y0, h, xn, expr)
+            runge_kutta(f, x0, y0, h, xn, expr)
+        elif metodo == 'Newton-Raphson':
+            newton_raphson(expr, x0, tol)
         else:
             messagebox.showerror('Error', 'Seleccione un método')
             return
         
-        # Guardar solo los primeros 10 resultados
-        guardar_resultados(metodo, x_vals[:10], y_vals[:10], x0, y0, h, xn, expr)
-        
-        # Mostrar los primeros 10 resultados en un cuadro de diálogo
-        mostrar_resultados(x_vals[:10], y_vals[:10])
 
-        plt.plot(x_vals, y_vals, marker='o', label=metodo)
-        plt.xlabel('x')
-        plt.ylabel('y')
-        plt.title('Método ' + metodo)
-        plt.legend()
-        plt.grid()
-        plt.show()
+
     except Exception as e:
         messagebox.showerror('Error', str(e))
 
@@ -206,6 +343,27 @@ def on_closing():
     if messagebox.askokcancel("Salir", "¿Quieres salir del programa?"):
         root.destroy()
 
+def actualizar_campos(*args):
+    metodo = metodo_var.get()
+    if metodo == 'Newton-Raphson':
+        y0_label.grid_remove()
+        y0_entry.grid_remove()
+        h_label.grid_remove()
+        h_entry.grid_remove()
+        xn_label.grid_remove()
+        xn_entry.grid_remove()
+        tol_label.grid()
+        tol_entry.grid()
+    else:
+        y0_label.grid()
+        y0_entry.grid()
+        h_label.grid()
+        h_entry.grid()
+        xn_label.grid()
+        xn_entry.grid()
+        tol_label.grid_remove()
+        tol_entry.grid_remove()
+
 # Función para reiniciar los campos de entrada
 def reiniciar():
     equation_entry.delete(0, tk.END)
@@ -213,18 +371,19 @@ def reiniciar():
     y0_entry.delete(0, tk.END)
     h_entry.delete(0, tk.END)
     xn_entry.delete(0, tk.END)
+    tol_entry.delete(0, tk.END)
     metodo_var.set('')
     # para que el grafico se reinicie
     plt.close()
 
-
-# Configuración de la ventana
+# Interfaz gráfica con Tkinter
 root = tk.Tk()
 root.title('Solución de EDOs')
 
+# Entradas
 metodo_var = tk.StringVar()
+metodo_var.trace('w', actualizar_campos)
 
-# Entradas con ejemplos al lado
 tk.Label(root, text='Ecuación diferencial dy/dx=', font=("Arial", 20)).grid(row=0, column=0, sticky='e')
 equation_entry = tk.Entry(root, width=30, font=("Arial", 18))
 equation_entry.grid(row=0, column=1, sticky='w')
@@ -235,33 +394,42 @@ x0_entry = tk.Entry(root, font=("Arial", 18))
 x0_entry.grid(row=1, column=1, sticky='w')
 tk.Label(root, text='Ej: 0', font=("Arial", 18)).grid(row=1, column=2, sticky='w')
 
-tk.Label(root, text='y0:', font=("Arial", 20)).grid(row=2, column=0, sticky='e')
+y0_label = tk.Label(root, text='y0:', font=("Arial", 20))
+y0_label.grid(row=2, column=0, sticky='e')
 y0_entry = tk.Entry(root, font=("Arial", 18))
 y0_entry.grid(row=2, column=1, sticky='w')
 tk.Label(root, text='Ej: 1', font=("Arial", 18)).grid(row=2, column=2, sticky='w')
 
-tk.Label(root, text='h:', font=("Arial", 20)).grid(row=3, column=0, sticky='e')
+h_label = tk.Label(root, text='h:', font=("Arial", 20))
+h_label.grid(row=3, column=0, sticky='e')
 h_entry = tk.Entry(root, font=("Arial", 18))
 h_entry.grid(row=3, column=1, sticky='w')
 tk.Label(root, text='Ej: 0.1', font=("Arial", 18)).grid(row=3, column=2, sticky='w')
 
-tk.Label(root, text='xn:', font=("Arial", 20)).grid(row=4, column=0, sticky='e')
+xn_label = tk.Label(root, text='xn:', font=("Arial", 20))
+xn_label.grid(row=4, column=0, sticky='e')
 xn_entry = tk.Entry(root, font=("Arial", 18))
 xn_entry.grid(row=4, column=1, sticky='w')
 tk.Label(root, text='Ej: 2', font=("Arial", 18)).grid(row=4, column=2, sticky='w')
 
+tol_label = tk.Label(root, text='tolerancia:', font=("Arial", 20))
+tol_label.grid(row=5, column=0, sticky='e')
+tol_entry = tk.Entry(root, font=("Arial", 18))
+tol_entry.grid(row=5, column=1, sticky='w')
+tk.Label(root, text='Ej: 1e-7', font=("Arial", 18)).grid(row=5, column=2, sticky='w')
+
 # Métodos
-tk.Label(root, text='Método:', font=("Arial", 20)).grid(row=5, column=0, sticky='e')
-tk.Radiobutton(root, text='Euler', variable=metodo_var, value='Euler', font=("Arial", 18)).grid(row=5, column=1, sticky='w')
-tk.Radiobutton(root, text='Euler Mejorado', variable=metodo_var, value='Euler Mejorado', font=("Arial", 18)).grid(row=6, column=1, sticky='w')
-tk.Radiobutton(root, text='Runge-Kutta', variable=metodo_var, value='Runge-Kutta', font=("Arial", 18)).grid(row=7, column=1, sticky='w')
+tk.Label(root, text='Método:', font=("Arial", 20)).grid(row=6, column=0, sticky='e')
+tk.Radiobutton(root, text='Euler Mejorado', variable=metodo_var, value='Euler Mejorado', font=("Arial", 18)).grid(row=7, column=1, sticky='w')
+tk.Radiobutton(root, text='Runge-Kutta', variable=metodo_var, value='Runge-Kutta', font=("Arial", 18)).grid(row=8, column=1, sticky='w')
+tk.Radiobutton(root, text='Newton-Raphson', variable=metodo_var, value='Newton-Raphson', font=("Arial", 18)).grid(row=9, column=1, sticky='w')
 
 # Botones
-tk.Button(root, text='Resolver', font=("Arial", 18), command=resolver).grid(row=8, column=1, sticky='w')
-tk.Button(root, text='Reiniciar', font=("Arial", 18), command=reiniciar).grid(row=8, column=2, sticky='w')
+tk.Button(root, text='Resolver', font=("Arial", 18), command=resolver).grid(row=10, column=1, sticky='w')
+tk.Button(root, text='Reiniciar', font=("Arial", 18), command=reiniciar).grid(row=10, column=2, sticky='w')
 
 # Descripción de uso
 descripcion = "Ingrese la ecuación en términos de x e y. Establezca los valores iniciales (x0, y0), el paso (h) y el valor final (xn). Seleccione un método y presione 'Resolver'."
-tk.Label(root, text=descripcion, font=("Arial", 16), wraplength=580, justify='left').grid(row=9, column=0, columnspan=3, pady=10)
+tk.Label(root, text=descripcion, font=("Arial", 16), wraplength=580, justify='left').grid(row=11, column=0, columnspan=3, pady=10)
 
 root.mainloop()
