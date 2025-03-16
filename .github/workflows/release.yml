@@ -35,7 +35,7 @@ jobs:
       - name: Print pull requests
         run: |
           echo "Pull Requests since last release:"
-          echo "${{ env.prs }}"
+          echo "${{ env.prs }}" 
 
       - name: Create Release
         id: create_release
