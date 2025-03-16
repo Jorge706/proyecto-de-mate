@@ -21,7 +21,7 @@ jobs:
         run: |
           latest_real_tag=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/releases" | \
-            jq -r '[.[] | select(.tag_name | test("^real"))] | sort_by(.published_at) | last | .tag_name')
+            jq -r '[.[] | select(.tag_name | test("^releas"))] | sort_by(.published_at) | last | .tag_name')
 
           if [[ "$latest_real_tag" == "null" ]]; then
             latest_real_tag="real-v0.0.0"
