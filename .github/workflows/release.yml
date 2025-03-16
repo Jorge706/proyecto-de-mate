@@ -68,6 +68,7 @@ jobs:
 
           echo "pr_list<<EOF" >> $GITHUB_ENV
           echo "$pr_list" >> $GITHUB_ENV
+          echo "pr : $pr_list"
           echo "EOF" >> $GITHUB_ENV
 
           echo "commit_list<<EOF" >> $GITHUB_ENV
