@@ -1,3 +1,79 @@
+name: Create Release and Compare to Last "real" Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # 🔢 Generar un nuevo tag para el release
+      - name: Generate new version tag
+        id: generate_tag
+        run: |
+          new_tag="releas-v1.0.0-$(date +%Y%m%d%H%M%S)"
+          echo "new_tag=$new_tag" >> $GITHUB_ENV
+
+      # 📢 Crear el Release
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.new_tag }}
+          release_name: Release ${{ env.new_tag }}
+          body: "Auto-generated release"
+          draft: false
+          prerelease: false
+
+      # 🔍 Obtener el último release cuyo NOMBRE comience con "real"
+      - name: Get last release starting with "real"
+        id: get_last_real_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          last_real_release=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases" | \
+            jq -r '[.[] | select(.name | test("^real"))] | sort_by(.published_at) | last')
+
+          last_real_tag=$(echo "$last_real_release" | jq -r '.tag_name')
+
+          if [[ -z "$last_real_tag" || "$last_real_tag" == "null" ]]; then
+            echo "No previous 'real' release found. Skipping compare."
+            exit 0
+          fi
+
+          echo "last_real_tag=$last_real_tag" >> $GITHUB_ENV
+
+      # 🔍 Obtener cambios entre el último "real" release y el nuevo
+      - name: Get changes between releases
+        id: get_changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          compare_url="https://api.github.com/repos/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}"
+          compare_data=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$compare_url")
+
+          # Extraer PRs y commits
+          pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) | "- \(.commit.message)"')
+          commit_list=$(echo "$compare_data" | jq -r '.commits[] | "- \(.commit.message)"')
+
+          echo "pr_list<<EOF" >> $GITHUB_ENV
+          echo "$pr_list" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+          echo "commit_list<<EOF" >> $GITHUB_ENV
+          echo "$commit_list" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      # 🔄 Actualizar el Release con los cambios detectados
       - name: Update Release with Changelog
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -20,15 +96,15 @@
             pr_url=$(echo $pr | base64 --decode | jq -r '.html_url')
             pr_number=$(echo $pr | base64 --decode | jq -r '.number')
             pr_user=$(echo $pr | base64 --decode | jq -r '.user.login')
-            pr_list+="- $pr_title by @$pr_user in [$pr_url](https://github.com/${{ github.repository }}/pull/$pr_number)\n"
+            pr_list+="- PR #$pr_number: [$pr_title]($pr_url) by @$pr_user\n"
           done
 
           changelog+="$pr_list"
 
-          # Formatear los nuevos contribuyentes (solo si se aplican)
+          # Formatear los nuevos contribuyentes
           contributors_list=""
           for contributor in $(echo "$prs" | jq -r '.[] | select(.user.login != null) | .user.login'); do
-            contributors_list+="- @$contributor made their first contribution in https://github.com/$contributor\n"
+            contributors_list+="- @$contributor made their first contribution\n"
           done
 
           changelog+="\n## New Contributors\n$contributors_list"
