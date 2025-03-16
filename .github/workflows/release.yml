@@ -81,18 +81,20 @@ jobs:
           release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
             "https://api.github.com/repos/${{ github.repository }}/releases/tags/$new_tag" | jq -r .id)
 
+          # Construir changelog en formato Markdown
           changelog="## 🚀 Changes since last release ($last_real_tag)\n"
           changelog+="\n### 🔥 Pull Requests Merged\n$pr_list\n"
           changelog+="\n### 📌 Commits\n$commit_list\n"
-          
-          # Escapar el contenido para asegurar que el JSON sea válido
+
+          # Asegurarnos de que el cuerpo sea válido en formato Markdown
           changelog=$(echo "$changelog" | jq -Rs .)
 
-          # Actualizar el release con el changelog formateado
+          # Actualizar el release con el changelog en formato bonito (Markdown)
           curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
             -d "{\"body\": $changelog}" \
             "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
 
           echo "✅ Release updated with changelog!"
+
 
 
