@@ -6,6 +6,8 @@ on:
 jobs:
   create_release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -26,8 +28,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ env.tag }}
+          release_name: Release ${{ env.tag }}
           body: "Creating release..."
           draft: false
           prerelease: false
@@ -54,7 +56,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           release_id=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref }}" | jq -r .id)
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.tag }}" | jq -r .id)
           changelog="${{ env.prs }}"
           curl -s -X PATCH -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -d "{\"body\": \"## Pull Requests since last release\n$changelog\"}" \
