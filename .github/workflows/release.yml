@@ -1,4 +1,4 @@
-name: Create Release and Get PRs
+name: Create Release and Compare to Last "real" Release
 
 on:
   workflow_dispatch:
@@ -13,51 +13,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # 🔍 Obtener el último tag que empiece con "releas"
-      - name: Get latest release tag starting with "releas"
-        id: get_latest_releas_tag
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          latest_releas_tag=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases" | \
-            jq -r '[.[] | select(.tag_name | test("^releas"))] | sort_by(.published_at) | last | .tag_name')
-
-          if [[ "$latest_releas_tag" == "null" ]]; then
-            latest_releas_tag="releas-v0.0.0"
-          fi
-
-          echo "latest_releas_tag=$latest_releas_tag" >> $GITHUB_ENV
-
-      # 🔢 Generar nuevo tag automáticamente basado en el último "releas"
+      # 🔢 Generar un nuevo tag para el release
       - name: Generate new version tag
         id: generate_tag
         run: |
-          IFS='.' read -ra VERSION <<< "${{ env.latest_releas_tag }}"
-          new_tag="releas-v${VERSION[0]}.$((VERSION[1] + 1)).0"
+          new_tag="releas-v1.0.0-$(date +%Y%m%d%H%M%S)"
           echo "new_tag=$new_tag" >> $GITHUB_ENV
 
-      # 🔍 Obtener los cambios desde el último "releas" release
-      - name: Get commit and PR changes
-        id: get_changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          compare_url="https://api.github.com/repos/${{ github.repository }}/compare/${{ env.latest_releas_tag }}...main"
-          compare_data=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$compare_url")
-
-          pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) | "- \(.commit.message)"')
-          commit_list=$(echo "$compare_data" | jq -r '.commits[] | "- \(.commit.message)"')
-
-          echo "pr_list<<EOF" >> $GITHUB_ENV
-          echo "$pr_list" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-          echo "commit_list<<EOF" >> $GITHUB_ENV
-          echo "$commit_list" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      # 📢 Crear Release con las release notes generadas
+      # 📢 Crear el Release
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -66,14 +29,34 @@ jobs:
         with:
           tag_name: ${{ env.new_tag }}
           release_name: Release ${{ env.new_tag }}
-          body: |
-            ## 🚀 Changes in this release
-            
-            ### 🔥 Pull Requests Merged
-            ${{ env.pr_list }}
-
-            ### 📌 Commits
-            ${{ env.commit_list }}
-
+          body: "Auto-generated release"
           draft: false
           prerelease: false
+
+      # 🔍 Obtener el último release cuyo NOMBRE comience con "real"
+      - name: Get last release starting with "real"
+        id: get_last_real_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          last_real_release=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases" | \
+            jq -r '[.[] | select(.name | test("^real"))] | sort_by(.published_at) | last')
+
+          last_real_tag=$(echo "$last_real_release" | jq -r '.tag_name')
+
+          if [[ -z "$last_real_tag" || "$last_real_tag" == "null" ]]; then
+            echo "No previous 'real' release found. Skipping compare."
+            exit 0
+          fi
+
+          echo "last_real_tag=$last_real_tag" >> $GITHUB_ENV
+
+      # 🔍 Hacer el compare entre el nuevo release y el último "real"
+      - name: Compare changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Comparing ${{ env.last_real_tag }} with ${{ env.new_tag }}..."
+          compare_url="https://github.com/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}"
+          echo "🔗 View the compare results: $compare_url"
