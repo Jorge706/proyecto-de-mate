@@ -13,6 +13,8 @@ jobs:
 
       - name: Get the latest release tag
         id: get_latest_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           latest_tag=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name)
@@ -20,6 +22,8 @@ jobs:
 
       - name: Get pull requests since last release
         id: get_prs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           latest_release=${{ steps.get_latest_release.outputs.tag }}
           echo "Latest release: $latest_release"
@@ -40,4 +44,4 @@ jobs:
             ## Pull Requests since last release
             ${{ steps.get_prs.outputs.prs }}
           draft: false
-          prerelease: false
+          prerelease: fals
