@@ -32,6 +32,11 @@ jobs:
             jq -r --arg latest_release "$latest_release" '[.[] | select(.merged_at != null and .merged_at > $latest_release)] | .[] | "- PR #\(.number): \(.title) (\(.html_url))"')
           echo "prs=$prs" >> $GITHUB_ENV
 
+      - name: Print pull requests
+        run: |
+          echo "Pull Requests since last release:"
+          echo "${{ env.prs }}"
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
