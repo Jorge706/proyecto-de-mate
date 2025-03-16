@@ -21,6 +21,18 @@ jobs:
           echo "tag=$latest_tag" >> $GITHUB_ENV
           echo "Latest tag: $latest_tag"
 
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: "Creating release..."
+          draft: false
+          prerelease: false
+
       - name: Get pull requests since last release
         id: get_prs
         env:
@@ -39,22 +51,13 @@ jobs:
           echo "Pull Requests since last release:"
           echo "${{ env.prs }}"
 
-      - name: Debug API response
-        run: |
-          echo "Debugging API response:"
-          curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/pulls?state=closed&sort=updated&direction=desc" | jq '.'
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Update Release with Changelog
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            ## Pull Requests since last release
-            ${{ env.prs }}
-          draft: false
-          prerelease: false
+        run: |
+          release_id=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref }}" | jq -r .id)
+          changelog="${{ env.prs }}"
+          curl -s -X PATCH -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -d "{\"body\": \"## Pull Requests since last release\n$changelog\"}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
