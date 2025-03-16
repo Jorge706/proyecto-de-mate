@@ -18,19 +18,19 @@ jobs:
         run: |
           latest_tag=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name)
-          echo "::set-output name=tag::$latest_tag"
+          echo "tag=$latest_tag" >> $GITHUB_ENV
 
       - name: Get pull requests since last release
         id: get_prs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          latest_release=${{ steps.get_latest_release.outputs.tag }}
+          latest_release=${{ env.tag }}
           echo "Latest release: $latest_release"
           prs=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/pulls?state=closed&sort=updated&direction=desc" | \
             jq -r --arg latest_release "$latest_release" '[.[] | select(.merged_at != null and .merged_at > $latest_release)] | .[] | "- PR #\(.number): \(.title) (\(.html_url))"')
-          echo "::set-output name=prs::$prs"
+          echo "prs=$prs" >> $GITHUB_ENV
 
       - name: Create Release
         id: create_release
@@ -42,6 +42,6 @@ jobs:
           release_name: Release ${{ github.ref }}
           body: |
             ## Pull Requests since last release
-            ${{ steps.get_prs.outputs.prs }}
+            ${{ env.prs }}
           draft: false
-          prerelease: fals
+          prerelease: false
