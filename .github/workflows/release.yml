@@ -20,19 +20,6 @@ jobs:
           new_tag="releas-v1.0.0-$(date +%Y%m%d%H%M%S)"
           echo "new_tag=$new_tag" >> $GITHUB_ENV
 
-      # 📢 Crear el Release
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.new_tag }}
-          release_name: Release ${{ env.new_tag }}
-          body: "Auto-generated release"
-          draft: false
-          prerelease: false
-
       # 🔍 Obtener el último release cuyo NOMBRE comience con "real"
       - name: Get last release starting with "real"
         id: get_last_real_release
@@ -76,31 +63,27 @@ jobs:
           echo "$commit_list" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      # 🔄 Actualizar el Release con los cambios detectados
-      - name: Update Release with Changelog
+      # 📢 Crear el Release con el changelog generado
+      - name: Create Release with Changelog
+        id: create_release
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.new_tag }}
+          release_name: Release ${{ env.new_tag }}
+          body: |
+            ## What's Changed
+            ${{ env.pr_list }}
+
+            ## New Contributors
+            ${{ env.commit_list }}
+
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}
+          draft: false
+          prerelease: false
+
+      - name: Print release notes
         run: |
-          release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.new_tag }}" | jq -r .id)
-
-          changelog="## What's Changed\n"
-          
-          # Agregar los PRs a la lista en formato Markdown
-          changelog+="${{ env.pr_list }}"
-
-          # Formatear los nuevos contribuyentes (solo si se aplican)
-          contributors_list=""
-          for contributor in $(echo "$prs" | jq -r '.[] | select(.user.login != null) | .user.login'); do
-            contributors_list+="- @$contributor made their first contribution in https://github.com/$contributor\n"
-          done
-
-          changelog+="\n## New Contributors\n$contributors_list"
-          changelog+="\n**Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}"
-
-          # Actualizar el release con el changelog en formato Markdown
-          curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
-            -d "{\"body\": \"$changelog\"}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
-
-          echo "✅ Release updated with changelog!"
+          echo "Release notes for the new release:"
+          echo "${{ steps.create_release.outputs.body }}"
