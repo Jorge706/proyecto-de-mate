@@ -44,8 +44,8 @@ jobs:
             jq -r '[.[] | select(.name | test("^real"))] | sort_by(.published_at) | last')
 
           last_real_tag=$(echo "$last_real_release" | jq -r '.tag_name')
-          echo last_real_tag
-
+          echo "$last_real_tag"
+  
           if [[ -z "$last_real_tag" || "$last_real_tag" == "null" ]]; then
             echo "No previous 'real' release found. Skipping compare."
             exit 0
