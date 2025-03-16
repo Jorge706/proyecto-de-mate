@@ -84,10 +84,15 @@ jobs:
           changelog="## 🚀 Changes since last release ($last_real_tag)\n"
           changelog+="\n### 🔥 Pull Requests Merged\n$pr_list\n"
           changelog+="\n### 📌 Commits\n$commit_list\n"
+          
+          # Escapar el contenido para asegurar que el JSON sea válido
+          changelog=$(echo "$changelog" | jq -Rs .)
 
+          # Actualizar el release con el changelog formateado
           curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
-            -d "{\"body\": \"$changelog\"}" \
+            -d "{\"body\": $changelog}" \
             "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
 
           echo "✅ Release updated with changelog!"
+
 
