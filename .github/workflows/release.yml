@@ -13,37 +13,37 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # 🔍 Obtener el último tag que empiece con "real"
-      - name: Get latest release tag starting with "real"
-        id: get_latest_real_release
+      # 🔍 Obtener el último tag que empiece con "releas"
+      - name: Get latest release tag starting with "releas"
+        id: get_latest_releas_tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          latest_real_tag=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          latest_releas_tag=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/releases" | \
             jq -r '[.[] | select(.tag_name | test("^releas"))] | sort_by(.published_at) | last | .tag_name')
 
-          if [[ "$latest_real_tag" == "null" ]]; then
-            latest_real_tag="real-v0.0.0"
+          if [[ "$latest_releas_tag" == "null" ]]; then
+            latest_releas_tag="releas-v0.0.0"
           fi
 
-          echo "latest_real_tag=$latest_real_tag" >> $GITHUB_ENV
+          echo "latest_releas_tag=$latest_releas_tag" >> $GITHUB_ENV
 
-      # 🔢 Generar nuevo tag automáticamente basado en el último "real"
+      # 🔢 Generar nuevo tag automáticamente basado en el último "releas"
       - name: Generate new version tag
         id: generate_tag
         run: |
-          IFS='.' read -ra VERSION <<< "${{ env.latest_real_tag }}"
-          new_tag="real-v${VERSION[0]}.$((VERSION[1] + 1)).0"
+          IFS='.' read -ra VERSION <<< "${{ env.latest_releas_tag }}"
+          new_tag="releas-v${VERSION[0]}.$((VERSION[1] + 1)).0"
           echo "new_tag=$new_tag" >> $GITHUB_ENV
 
-      # 🔍 Obtener los cambios desde el último "real" release
+      # 🔍 Obtener los cambios desde el último "releas" release
       - name: Get commit and PR changes
         id: get_changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          compare_url="https://api.github.com/repos/${{ github.repository }}/compare/${{ env.latest_real_tag }}...main"
+          compare_url="https://api.github.com/repos/${{ github.repository }}/compare/${{ env.latest_releas_tag }}...main"
           compare_data=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$compare_url")
 
           pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) | "- \(.commit.message)"')
