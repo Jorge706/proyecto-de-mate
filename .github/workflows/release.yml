@@ -81,12 +81,14 @@ jobs:
           release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
             "https://api.github.com/repos/${{ github.repository }}/releases/tags/$new_tag" | jq -r .id)
 
-          # Construir changelog en formato Markdown
-          changelog="## 🚀 Changes since last release ($last_real_tag)\n"
-          changelog+="\n### 🔥 Pull Requests Merged\n$pr_list\n"
-          changelog+="\n### 📌 Commits\n$commit_list\n"
+          # Construir changelog con el formato deseado
+          changelog="## What's Changed\n"
+          changelog+="$pr_list\n"  # Aquí agregamos los PRs, ya formateados
+          changelog+="\n## New Contributors\n"
+          changelog+="$contributors_list\n"  # Aquí agregamos los nuevos contribuyentes
+          changelog+="\n**Full Changelog**: https://github.com/${{ github.repository }}/compare/$last_real_tag...$new_tag"
 
-          # Asegurarnos de que el cuerpo sea válido en formato Markdown
+          # Asegurarse de que el changelog sea una cadena válida para JSON
           changelog=$(echo "$changelog" | jq -Rs .)
 
           # Actualizar el release con el changelog en formato bonito (Markdown)
