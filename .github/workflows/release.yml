@@ -96,15 +96,15 @@ jobs:
             pr_url=$(echo $pr | base64 --decode | jq -r '.html_url')
             pr_number=$(echo $pr | base64 --decode | jq -r '.number')
             pr_user=$(echo $pr | base64 --decode | jq -r '.user.login')
-            pr_list+="- PR #$pr_number: [$pr_title]($pr_url) by @$pr_user\n"
+            pr_list+="- $pr_title by @$pr_user in [$pr_url](https://github.com/${{ github.repository }}/pull/$pr_number)\n"
           done
 
           changelog+="$pr_list"
 
-          # Formatear los nuevos contribuyentes
+          # Formatear los nuevos contribuyentes (solo si se aplican)
           contributors_list=""
           for contributor in $(echo "$prs" | jq -r '.[] | select(.user.login != null) | .user.login'); do
-            contributors_list+="- @$contributor made their first contribution\n"
+            contributors_list+="- @$contributor made their first contribution in https://github.com/$contributor\n"
           done
 
           changelog+="\n## New Contributors\n$contributors_list"
