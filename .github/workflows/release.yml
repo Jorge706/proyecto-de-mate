@@ -52,11 +52,41 @@ jobs:
 
           echo "last_real_tag=$last_real_tag" >> $GITHUB_ENV
 
-      # 🔍 Hacer el compare entre el nuevo release y el último "real"
-      - name: Compare changes
+      # 🔍 Obtener cambios entre el último "real" release y el nuevo
+      - name: Get changes between releases
+        id: get_changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Comparing ${{ env.last_real_tag }} with ${{ env.new_tag }}..."
-          compare_url="https://github.com/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}"
-          echo "🔗 View the compare results: $compare_url"
+          compare_url="https://api.github.com/repos/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}"
+          compare_data=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$compare_url")
+
+          # Extraer PRs y commits
+          pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) | "- \(.commit.message)"')
+          commit_list=$(echo "$compare_data" | jq -r '.commits[] | "- \(.commit.message)"')
+
+          echo "pr_list<<EOF" >> $GITHUB_ENV
+          echo "$pr_list" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+          echo "commit_list<<EOF" >> $GITHUB_ENV
+          echo "$commit_list" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      # 🔄 Actualizar el Release con los cambios detectados
+      - name: Update Release with Changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          release_id=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.new_tag }}" | jq -r .id)
+
+          changelog="## 🚀 Changes since last release (${env.last_real_tag})\n"
+          changelog+="\n### 🔥 Pull Requests Merged\n${{ env.pr_list }}\n"
+          changelog+="\n### 📌 Commits\n${{ env.commit_list }}\n"
+
+          curl -s -X PATCH -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -d "{\"body\": \"$changelog\"}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
+
+          echo "✅ Release updated with changelog!"
