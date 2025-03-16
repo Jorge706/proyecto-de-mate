@@ -20,7 +20,14 @@ jobs:
         run: |
           latest_tag=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name)
-          echo "tag=$latest_tag" >> $GITHUB_ENV
+
+          if [[ "$latest_tag" == "null" ]]; then
+            new_tag="v1.0.0"
+          else
+            new_tag=$(echo $latest_tag | awk -F. '{$NF+=1; OFS="."; print $0}')
+          fi
+
+          echo "tag=$new_tag" >> $GITHUB_ENV
 
       - name: Create Release
         id: create_release
