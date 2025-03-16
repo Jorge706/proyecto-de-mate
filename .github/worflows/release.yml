@@ -1,0 +1,43 @@
+name: Create Release and Get PRs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Get the latest release tag
+        id: get_latest_release
+        run: echo "::set-output name=tag::$(git describe --tags `git rev-list --tags --max-count=1`)"
+
+      - name: Get pull requests since last release
+        id: get_prs
+        run: |
+          latest_release=${{ steps.get_latest_release.outputs.tag }}
+          echo "Latest release: $latest_release"
+          prs=$(gh pr list --state merged --search "merged:>$latest_release" --json number,title,url)
+          echo "::set-output name=prs::$prs"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            ## Pull Requests since last release
+            ${{ steps.get_prs.outputs.prs }}
+          draft: false
+          prerelease: false
