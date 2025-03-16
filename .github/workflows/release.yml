@@ -13,58 +13,66 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      # 🔍 Obtener el último tag (release)
       - name: Get the latest release tag
         id: get_latest_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           latest_tag=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name)
+            "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r .tag_name)
 
           if [[ "$latest_tag" == "null" ]]; then
-            new_tag="v1.0.0"
-          else
-            new_tag=$(echo $latest_tag | awk -F. '{$NF+=1; OFS="."; print $0}')
+            latest_tag="v0.0.0"
           fi
 
-          echo "tag=$new_tag" >> $GITHUB_ENV
+          echo "latest_tag=$latest_tag" >> $GITHUB_ENV
 
+      # 🔢 Generar nuevo tag automáticamente (incrementar versión)
+      - name: Generate new version tag
+        id: generate_tag
+        run: |
+          IFS='.' read -ra VERSION <<< "${{ env.latest_tag }}"
+          new_tag="v${VERSION[0]}.$((VERSION[1] + 1)).0"
+          echo "new_tag=$new_tag" >> $GITHUB_ENV
+
+      # 🔍 Obtener el compare entre la última versión y la nueva
+      - name: Get commit and PR changes
+        id: get_changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          compare_url="https://api.github.com/repos/${{ github.repository }}/compare/${{ env.latest_tag }}...main"
+          compare_data=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$compare_url")
+
+          pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) | "- \(.commit.message)"')
+          commit_list=$(echo "$compare_data" | jq -r '.commits[] | "- \(.commit.message)"')
+
+          echo "pr_list<<EOF" >> $GITHUB_ENV
+          echo "$pr_list" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+          echo "commit_list<<EOF" >> $GITHUB_ENV
+          echo "$commit_list" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      # 📢 Crear Release con las release notes generadas
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.tag }}
-          release_name: Release ${{ env.tag }}
-          body: "Creating release..."
+          tag_name: ${{ env.new_tag }}
+          release_name: Release ${{ env.new_tag }}
+          body: |
+            ## 🚀 Changes in this release
+            
+            ### 🔥 Pull Requests Merged
+            ${{ env.pr_list }}
+
+            ### 📌 Commits
+            ${{ env.commit_list }}
+
           draft: false
           prerelease: false
-
-      - name: Get pull requests since last release
-        id: get_prs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          latest_release=${{ env.tag }}
-          echo "Latest release: $latest_release"
-          prs=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/pulls?state=closed&sort=updated&direction=desc" | \
-            jq -r --arg latest_release "$latest_release" '[.[] | select(.merged_at != null and .merged_at > $latest_release)] | .[] | "- PR #\(.number): \(.title) (\(.html_url))"')
-          echo "prs=$prs" >> $GITHUB_ENV
-
-      - name: Print pull requests
-        run: |
-          echo "Pull Requests since last release:"
-          echo "${{ env.prs }}"
-
-      - name: Update Release with Changelog
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          release_id=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.tag }}" | jq -r .id)
-          changelog="${{ env.prs }}"
-          curl -s -X PATCH -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -d "{\"body\": \"## Pull Requests since last release\n$changelog\"}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
