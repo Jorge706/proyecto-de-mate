@@ -81,26 +81,30 @@ jobs:
           release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
             "https://api.github.com/repos/${{ github.repository }}/releases/tags/$new_tag" | jq -r .id)
 
-          # Construir changelog con formato Markdown
+          # Recuperar los PRs cerrados desde el último release
+          prs=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls?state=closed&sort=updated&direction=desc" | \
+            jq -r --arg last_real_tag "$last_real_tag" '[.[] | select(.merged_at != null and .merged_at > $last_real_tag)]')
+
+          # Construir el changelog
           changelog="## What's Changed\n"
           
-          # Formatear los PRs
+          # Agregar los PRs a la lista en formato Markdown
           pr_list=""
           for pr in $(echo "$prs" | jq -r '.[] | @base64'); do
             pr_title=$(echo $pr | base64 --decode | jq -r '.title')
             pr_url=$(echo $pr | base64 --decode | jq -r '.html_url')
             pr_number=$(echo $pr | base64 --decode | jq -r '.number')
-            pr_list+="- PR #$pr_number: [$pr_title]($pr_url) by $(echo $pr | base64 --decode | jq -r '.user.login')\n"
+            pr_user=$(echo $pr | base64 --decode | jq -r '.user.login')
+            pr_list+="- PR #$pr_number: [$pr_title]($pr_url) by @$pr_user\n"
           done
 
           changelog+="$pr_list"
 
           # Formatear los nuevos contribuyentes
           contributors_list=""
-          for contributor in $(echo "$contributors" | jq -r '.[] | @base64'); do
-            contributor_name=$(echo $contributor | base64 --decode | jq -r '.login')
-            contributor_url=$(echo $contributor | base64 --decode | jq -r '.html_url')
-            contributors_list+="- @$contributor_name made their first contribution in [$contributor_url](https://github.com/$contributor_name)\n"
+          for contributor in $(echo "$prs" | jq -r '.[] | select(.user.login != null) | .user.login'); do
+            contributors_list+="- @$contributor made their first contribution\n"
           done
 
           changelog+="\n## New Contributors\n$contributors_list"
