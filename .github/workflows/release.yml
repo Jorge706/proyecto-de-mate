@@ -78,15 +78,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          release_id=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.new_tag }}" | jq -r .id)
+          release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/$new_tag" | jq -r .id)
 
-          changelog="## 🚀 Changes since last release (${env.last_real_tag})\n"
-          changelog+="\n### 🔥 Pull Requests Merged\n${{ env.pr_list }}\n"
-          changelog+="\n### 📌 Commits\n${{ env.commit_list }}\n"
+          changelog="## 🚀 Changes since last release ($last_real_tag)\n"
+          changelog+="\n### 🔥 Pull Requests Merged\n$pr_list\n"
+          changelog+="\n### 📌 Commits\n$commit_list\n"
 
-          curl -s -X PATCH -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
             -d "{\"body\": \"$changelog\"}" \
             "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
 
           echo "✅ Release updated with changelog!"
+
