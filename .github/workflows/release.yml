@@ -57,14 +57,13 @@ jobs:
 
           if [[ -z "$last_real_tag" || "$last_real_tag" == "null" ]]; then
             echo "❌ No previous 'real' release found. Skipping compare."
-            exit 0
+            exit 0  
           fi
 
           echo "last_real_tag=$last_real_tag" >> $GITHUB_ENV
 
 
       # 🔍 Obtener cambios entre el último "real" release y el nuevo
-            # 🔍 Obtener cambios entre el último "real" release y el nuevo
       - name: Get changes between releases
         id: get_changes
         env:
@@ -83,7 +82,7 @@ jobs:
 
           echo "$last_real_tag"
           echo "$notes_data"
-      
+          
           # Extraer los release notes generados
           release_notes=$(echo "$notes_data" | jq -r '.body')
 
@@ -98,18 +97,21 @@ jobs:
             pr_number=$(echo "$pr_url" | grep -Eo '[0-9]+$')
             pr_title=$(echo "$line" | sed -E 's/\* (.+) by .*/\1/')
 
-            # Obtener información del PR para extraer la rama
+            # Obtener información del PR para extraer la rama y el autor
             pr_api_url="https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number"
             pr_data=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" "$pr_api_url")
+            
+            # Extraer la rama y el autor
             pr_branch=$(echo "$pr_data" | jq -r '.head.ref')
+            pr_author=$(echo "$pr_data" | jq -r '.user.login')  # Extraer el autor del PR
 
             # Clasificar los PRs en características, bugs y otros según el prefijo de la rama
             if [[ "$pr_branch" == test* ]]; then
-              feature_prs+=("- [$pr_title]($pr_url) in branch \`$pr_branch\`")
+              feature_prs+=("- [$pr_title]($pr_url) by \`$pr_author\`")
             elif [[ "$pr_branch" == fix* ]]; then
-              bug_prs+=("- [$pr_title]($pr_url) in branch \`$pr_branch\`")
+              bug_prs+=("- [$pr_title]($pr_url) by \`$pr_author\`")
             else
-              other_prs+=("- [$pr_title]($pr_url) in branch \`$pr_branch\`")
+              other_prs+=("- [$pr_title]($pr_url) by \`$pr_author\`")
             fi
           done < <(echo "$release_notes" | grep -Eo '\* .+ by @[^ ]+ in https://github.com/.+/pull/[0-9]+')
 
@@ -148,6 +150,7 @@ jobs:
           echo "full_changelog<<EOF" >> $GITHUB_ENV
           echo "$full_changelog" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
+
 
       # 📢 Crear el Release con el changelog generado
       - name: Create Release with Changelog
