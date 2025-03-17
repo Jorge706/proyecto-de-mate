@@ -117,8 +117,7 @@ jobs:
           echo "release_notes<<EOF" >> $GITHUB_ENV
           echo "$release_notes" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-
-      
+          echo "prlis: $pr_list"
 
 # 📢 Crear el Release con el changelog generado
       - name: Create Release with Changelog
@@ -130,7 +129,7 @@ jobs:
           tag_name: ${{ env.new_tag }}
           release_name: Release ${{ env.new_tag }}
           body: |
-            ${{ env.formatted_release_notes }}
+            ${{ env.release_notes }}
 
             ${{ env.full_changelog }}
           draft: false
