@@ -27,32 +27,39 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Obtener todas las releases
-          releases_data=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases")
-          
-          # Imprimir la respuesta completa para depuración
-          echo "Releases Data: $releases_data"
-          
-          # Filtrar releases cuyo nombre comienza con "real"
-          last_real_release=$(echo "$releases_data" | jq -r '[.[] | select(.name | test("^real"))] | sort_by(.published_at) | last')
+          page=1
+          last_real_tag=""
 
-          # Imprimir el release encontrado
-          echo "Last real release: $last_real_release"
+          while true; do
+            echo "Fetching page $page..."
+            releases_data=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases?per_page=100&page=$page")
 
-          # Extraer el tag_name
-          last_real_tag=$(echo "$last_real_release" | jq -r '.tag_name')
+            # Si la respuesta está vacía, terminamos
+            if [[ "$releases_data" == "[]" || -z "$releases_data" ]]; then
+              break
+            fi
 
-          # Mostrar el valor obtenido
-          echo "last_real_tag: $last_real_tag"
+            # Buscar el release cuyo nombre comience con "real"
+            last_real_release=$(echo "$releases_data" | jq -r '[.[] | select(.name | test("^real"))] | sort_by(.published_at) | last')
 
-          # Verificación de existencia
+            # Si encontramos un release válido, tomamos su tag y salimos del bucle
+            if [[ "$last_real_release" != "null" ]]; then
+              last_real_tag=$(echo "$last_real_release" | jq -r '.tag_name')
+              break
+            fi
+
+            # Pasar a la siguiente página
+            ((page++))
+          done
+
+          echo "Last real release tag: $last_real_tag"
+
           if [[ -z "$last_real_tag" || "$last_real_tag" == "null" ]]; then
             echo "❌ No previous 'real' release found. Skipping compare."
             exit 0
           fi
 
-          # Guardar en el entorno
           echo "last_real_tag=$last_real_tag" >> $GITHUB_ENV
 
 
