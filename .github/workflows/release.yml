@@ -64,7 +64,7 @@ jobs:
 
 
       # 🔍 Obtener cambios entre el último "real" release y el nuevo
-      # 🔍 Obtener cambios entre el último "real" release y el nuevo
+            # 🔍 Obtener cambios entre el último "real" release y el nuevo
       - name: Get changes between releases
         id: get_changes
         env:
@@ -87,8 +87,10 @@ jobs:
           # Extraer los release notes generados
           release_notes=$(echo "$notes_data" | jq -r '.body')
 
-          # Crear una lista de PRs con sus nombres y enlaces
-          pr_list=()
+          # Crear listas para cada categoría de PRs
+          feature_prs=()
+          bug_prs=()
+          other_prs=()
 
           # Extraer las líneas que contienen PRs
           while IFS= read -r line; do
@@ -101,18 +103,39 @@ jobs:
             pr_data=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" "$pr_api_url")
             pr_branch=$(echo "$pr_data" | jq -r '.head.ref')
 
-            # Formatear y almacenar en la lista
-            pr_entry="- [$pr_title]($pr_url) in branch \`$pr_branch\`"
-            pr_list+=("$pr_entry")
+            # Clasificar los PRs en características, bugs y otros según el prefijo de la rama
+            if [[ "$pr_branch" == feat* ]]; then
+              feature_prs+=("- [$pr_title]($pr_url) in branch \`$pr_branch\`")
+            elif [[ "$pr_branch" == fix* ]]; then
+              bug_prs+=("- [$pr_title]($pr_url) in branch \`$pr_branch\`")
+            else
+              other_prs+=("- [$pr_title]($pr_url) in branch \`$pr_branch\`")
+            fi
           done < <(echo "$release_notes" | grep -Eo '\* .+ by @[^ ]+ in https://github.com/.+/pull/[0-9]+')
 
           # Extraer el Full Changelog
           full_changelog=$(echo "$notes_data" | jq -r '.body' | grep -Eo '\*\*Full Changelog\*\*: .*')
 
-          # Guardar la lista y el full_changelog en el entorno
+          # Guardar las listas y el full_changelog en el entorno
           {
-            echo "pr_list<<EOF"
-            for pr in "${pr_list[@]}"; do
+            echo "feature_prs<<EOF"
+            for pr in "${feature_prs[@]}"; do
+              echo "$pr"
+            done
+            echo "EOF"
+          } >> $GITHUB_ENV
+
+          {
+            echo "bug_prs<<EOF"
+            for pr in "${bug_prs[@]}"; do
+              echo "$pr"
+            done
+            echo "EOF"
+          } >> $GITHUB_ENV
+
+          {
+            echo "other_prs<<EOF"
+            for pr in "${other_prs[@]}"; do
               echo "$pr"
             done
             echo "EOF"
@@ -136,9 +159,24 @@ jobs:
           tag_name: ${{ env.new_tag }}
           release_name: Release ${{ env.new_tag }}
           body: |
-            🚀 **Lista de Pull Requests incluidos en este release:**
+            🚀 **Features:**
             
-            ${{ env.pr_list }}
+            ${{ env.feature_prs }}
+
+            ---
+            🐞 **Bugs:**
+            
+            ${{ env.bug_prs }}
+
+            ---
+            🔧 **Others:**
+            
+            ${{ env.other_prs }}
+
+            ---
+            🔍 **Notas del Release:**
+            
+            ${{ env.release_notes }}
 
             ---
             📜 **Full Changelog:**
@@ -151,6 +189,12 @@ jobs:
       - name: Print release notes
         run: |
           echo "Release notes for the new release:"
-          echo "${{ env.pr_list }}"
+          echo "🚀 Features:"
+          echo "${{ env.feature_prs }}"
+          echo "🐞 Bugs:"
+          echo "${{ env.bug_prs }}"
+          echo "🔧 Others:"
+          echo "${{ env.other_prs }}"
           echo ""
           echo "${{ env.formatted_release_notes }}"
+
