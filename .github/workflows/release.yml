@@ -141,11 +141,6 @@ jobs:
             ${{ env.pr_list }}
 
             ---
-            🔍 **Notas del Release:**
-            
-            ${{ env.release_notes }}
-
-            ---
             📜 **Full Changelog:**
             
             ${{ env.full_changelog }}
