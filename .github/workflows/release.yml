@@ -96,7 +96,7 @@ jobs:
           while IFS= read -r line; do
             pr_url=$(echo "$line" | grep -Eo 'https://github.com/.+/pull/[0-9]+')
             pr_number=$(echo "$pr_url" | grep -Eo '[0-9]+$')
-            pr_title=$(echo "$line" | sed -E 's/\* (.+) by @[^ ]+ in https:\/\/github\.com\/.+\/pull\/[0-9]+/\1/')
+            pr_title=$(echo "$line" | sed -E 's/\* (.+) by .*/\1/')
 
             # Obtener información del PR para extraer la rama
             pr_api_url="https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number"
