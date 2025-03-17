@@ -69,11 +69,15 @@ jobs:
       - name: Format Release Notes
         id: format_release_notes
         run: |
-          formatted_prs=$(echo "${{ env.release_notes }}" | awk -v RS='\n' '/ by @/ {sub(/ by @.*/, "", $0); sub(/\*\*Full Changelog.*/, ""); print "- [" $0 "]"}')
+          formatted_prs=$(echo '${{ env.release_notes }}' | jq -r '
+            capture("(?<name>.+) by @.+ in (?<url>https://github.com/.+/pull/[0-9]+)") |
+            "- [\(.name)](\(.url))"
+          ')
       
           echo "formatted_release_notes<<EOF" >> $GITHUB_ENV
           echo "$formatted_prs" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
+
 
 # 📢 Crear el Release con el changelog generado
       - name: Create Release with Changelog
