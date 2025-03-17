@@ -51,18 +51,18 @@ jobs:
           echo "$compare_data"
 
           # Extraer PRs desde los commits
-          pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) | "- PR #\(.commit.message | match("#[0-9]+").string) by \(.author.login) in \(.html_url)"')
-          echo "$pr_list"
+          # pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) | "- PR #\(.commit.message | match("#[0-9]+").string) by \(.author.login) in \(.html_url)"')
+          # echo "$pr_list"
           # Extraer todos los commits para agregarlos al changelog
-          commit_list=$(echo "$compare_data" | jq -r '.commits[] | "- \(.commit.message)"')
+          # commit_list=$(echo "$compare_data" | jq -r '.commits[] | "- \(.commit.message)"')
 
-          echo "pr_list<<EOF" >> $GITHUB_ENV
-          echo "$pr_list" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          # echo "pr_list<<EOF" >> $GITHUB_ENV
+          # echo "$pr_list" >> $GITHUB_ENV
+          # echo "EOF" >> $GITHUB_ENV
 
-          echo "commit_list<<EOF" >> $GITHUB_ENV
-          echo "$commit_list" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          # echo "commit_list<<EOF" >> $GITHUB_ENV
+          # echo "$commit_list" >> $GITHUB_ENV
+          # echo "EOF" >> $GITHUB_ENV
 
       # 📢 Crear el Release con el changelog generado
       - name: Create Release with Changelog
