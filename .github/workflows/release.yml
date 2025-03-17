@@ -107,11 +107,11 @@ jobs:
 
             # Clasificar los PRs en características, bugs y otros según el prefijo de la rama
             if [[ "$pr_branch" == test* ]]; then
-              feature_prs+=("- [$pr_title]($pr_url) by \`$pr_author\`")
+              feature_prs+=("- [$pr_title]($pr_url) by @$pr_author ")
             elif [[ "$pr_branch" == fix* ]]; then
-              bug_prs+=("- [$pr_title]($pr_url) by \`$pr_author\`")
+              bug_prs+=("- [$pr_title]($pr_url) by @$pr_author ")
             else
-              other_prs+=("- [$pr_title]($pr_url) by \`$pr_author\`")
+              other_prs+=("- [$pr_title]($pr_url) by @$pr_author ")
             fi
           done < <(echo "$release_notes" | grep -Eo '\* .+ by @[^ ]+ in https://github.com/.+/pull/[0-9]+')
 
