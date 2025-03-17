@@ -175,10 +175,8 @@ jobs:
           release_notes+="📜 **Full Changelog:**\n${{ env.full_changelog }}"
 
           # Convert newlines to actual line breaks
-          release_notes="${release_notes//$'\n'/\\n}"
-
-          # Save the final release notes
-          echo "release_notes=$release_notes" >> $GITHUB_ENV
+          # Use printf to replace '\n' with real newlines in the release_notes
+          printf "%s" "$release_notes" >> $GITHUB_ENV
 
       - name: Create Release with Changelog
         id: create_release
@@ -192,7 +190,7 @@ jobs:
           draft: false
           prerelease: false
 
-      
+
       # 🔹 Imprimir las notas del release en la salida
       - name: Print release notes
         run: |
