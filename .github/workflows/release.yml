@@ -94,25 +94,101 @@ jobs:
 
           # Extraer las líneas que contienen PRs
           while IFS= read -r line; do
-            title=$(echo "$line" | jq -r '.title')
-            pr_number=$(echo "$line" | jq -r '.number')
-            branch=$(echo "$line" | jq -r '.head.ref')
-            echo "branch : $branch"
+            pr_url=$(echo "$line" | grep -Eo 'https://github.com/pull/[0-9]+')
+            pr_number=$(echo "$pr_url" | grep -Eo '[0-9]+$')
+            pr_title=$(echo "$line" | sed -E 's/\* (.+) by @[^ ]+ in https:\/\/github\.com\/.+\/pull\/[0-9]+/\1/')
 
-            case "$branch" in
-              test/*)
-                feature_prs+=("- #$pr_number $title")
-                ;;
-              bug/*)
-                bug_prs+=("- #$pr_number $title")
-                ;;
-              *)
-                other_prs+=("- #$pr_number $title")
-                ;;
-            esac
-          done <<< "$(echo "$notes_data" | jq -c '.[] | select(.title | test("^(feat|fix): "))')"
+            # Obtener información del PR para extraer la rama
+            pr_api_url="https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number"
+            pr_data=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" "$pr_api_url")
+            pr_branch=$(echo "$pr_data" | jq -r '.head.ref')
 
-          # Imprimir las listas
-          echo "Feature PRs: ${feature_prs[@]}"
-          echo "Bug PRs: ${bug_prs[@]}"
-          echo "Other PRs: ${other_prs[@]}"
+            # Clasificar los PRs en características, bugs y otros según el prefijo de la rama
+            if [[ "$pr_branch" == feat* ]]; then
+              feature_prs+=("- [$pr_title]($pr_url) in branch \`$pr_branch\`")
+            elif [[ "$pr_branch" == test* ]]; then
+              bug_prs+=("- [$pr_title]($pr_url) in branch \`$pr_branch\`")
+            else
+              other_prs+=("- [$pr_title]($pr_url) in branch \`$pr_branch\`")
+            fi
+          done < <(echo "$release_notes" | grep -Eo '\* .+ by @[^ ]+ in https://github.com/.+/pull/[0-9]+')
+
+          # Extraer el Full Changelog
+          full_changelog=$(echo "$notes_data" | jq -r '.body' | grep -Eo '\*\*Full Changelog\*\*: .*')
+
+          # Guardar las listas y el full_changelog en el entorno
+          {
+            echo "feature_prs<<EOF"
+            for pr in "${feature_prs[@]}"; do
+              echo "$pr"
+            done
+            echo "EOF"
+          } >> $GITHUB_ENV
+
+          {
+            echo "bug_prs<<EOF"
+            for pr in "${bug_prs[@]}"; do
+              echo "$pr"
+            done
+            echo "EOF"
+          } >> $GITHUB_ENV
+
+          {
+            echo "other_prs<<EOF"
+            for pr in "${other_prs[@]}"; do
+              echo "$pr"
+            done
+            echo "EOF"
+          } >> $GITHUB_ENV
+
+          echo "release_notes<<EOF" >> $GITHUB_ENV
+          echo "$release_notes" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+          echo "full_changelog<<EOF" >> $GITHUB_ENV
+          echo "$full_changelog" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      # 📢 Crear el Release con el changelog generado
+      - name: Create Release with Changelog
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.new_tag }}
+          release_name: Release ${{ env.new_tag }}
+          body: |
+            🚀 **Features:**
+            
+            ${{ env.feature_prs }}
+
+            ---
+            🐞 **Bugs:**
+            
+            ${{ env.bug_prs }}
+
+            ---
+            🔧 **Others:**
+            
+            ${{ env.other_prs }}
+
+            ---
+            📜 **Full Changelog:**
+            
+            ${{ env.full_changelog }}
+          draft: false
+          prerelease: false
+      
+      # 🔹 Imprimir las notas del release en la salida
+      - name: Print release notes
+        run: |
+          echo "Release notes for the new release:"
+          echo "🚀 Features:"
+          echo "${{ env.feature_prs }}"
+          echo "🐞 Bugs:"
+          echo "${{ env.bug_prs }}"
+          echo "🔧 Others:"
+          echo "${{ env.other_prs }}"
+          echo ""
+          echo "${{ env.formatted_release_notes }}"
