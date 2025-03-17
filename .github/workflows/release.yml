@@ -51,30 +51,6 @@ jobs:
           body: ""
           draft: false
           prerelease: false
-          
-      - name: Generate Release Notes
-        id: generate_release_notes
-        run: |
-          # URL para generar las notas del release
-          notes_url="https://api.github.com/repos/${{ github.repository }}/releases/generate-notes"
-          
-          # Hacer la solicitud a la API para generar las notas del release
-          notes_data=$(curl -s -X POST "$notes_url" \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -d '{
-              "tag_name": "${{ env.new_tag }}",
-              "target_commitish": "main",
-              "previous_tag_name": "${{ env.last_real_tag }}"
-            }')
-      
-          # Extraer los PRs y sus ramas de origen (head.ref) desde los datos de la respuesta
-          pr_info=$(echo "$notes_data" | jq -r '.pr_summary[] | "- [\(.title)](https://github.com/\(.user.login)/proyecto-de-mate/pull/\(.number)) from branch: \(.head.ref) by @\(.user.login)"')
-      
-          # Guardar la información de los PRs formateados
-          echo "pr_info<<EOF" >> $GITHUB_ENV
-          echo "$pr_info" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
 
       - name: Generate Release Notes using Compare
         id: generate_release_notes
@@ -86,21 +62,21 @@ jobs:
           compare_data=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$compare_url")
       
           # Extraer los commits y PRs del resultado
-          commit_list=$(echo "$compare_data" | jq -r '.commits[] | "- \(.commit.message) by \(.author.login) [\(.html_url)]"')
-          pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) | "- PR #\(.commit.message | match("#[0-9]+").string) by \(.author.login) [\(.html_url)]"')
+          pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) |
+            "- [\(.commit.message | match("#[0-9]+").string)](https://github.com/\(.author.login)/proyecto-de-mate/pull/\(.commit.message | match("#[0-9]+").string)) from branch: \(.parents[0].sha) by @\(.author.login) in branch \(.commit.tree.sha)"')
       
-          # Crear el changelog con los commits y PRs
+          # Crear el changelog con los PRs y commits
           changelog="## What's Changed\n"
-          changelog+="$commit_list\n"
           changelog+="$pr_list\n"
+      
+          # Agregar el enlace al changelog completo
+          changelog+="\n**Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}"
       
           # Guardar las notas generadas en una variable de entorno para usarla más adelante
           echo "changelog<<EOF" >> $GITHUB_ENV
           echo "$changelog" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-
-          
       - name: Update Release with Notes
         id: update_release
         run: |
@@ -118,3 +94,4 @@ jobs:
             }')
       
           echo "Release updated with notes"
+
