@@ -151,6 +151,32 @@ jobs:
           echo "$full_changelog" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
+      - name: Generate Release Notes
+        id: generate_notes
+        run: |
+          release_notes=""
+
+          # Add Features if they exist
+          if [[ -n "${{ env.feature_prs }}" ]]; then
+            release_notes="🚀 **Features:**\n${{ env.feature_prs }}\n---\n"
+          fi
+
+          # Add Bugs if they exist
+          if [[ -n "${{ env.bug_prs }}" ]]; then
+            release_notes+="🐞 **Bugs:**\n${{ env.bug_prs }}\n---\n"
+          fi
+
+          # Add Others if they exist
+          if [[ -n "${{ env.other_prs }}" ]]; then
+            release_notes+="🔧 **Others:**\n${{ env.other_prs }}\n---\n"
+          fi
+
+          # Add Full Changelog
+          release_notes+="📜 **Full Changelog:**\n${{ env.full_changelog }}"
+
+          # Save the final release notes
+          echo "release_notes=$release_notes" >> $GITHUB_ENV
+
       - name: Create Release with Changelog
         id: create_release
         uses: actions/create-release@v1
@@ -159,26 +185,10 @@ jobs:
         with:
           tag_name: ${{ env.new_tag }}
           release_name: Release ${{ env.new_tag }}
-          body: |
-            ${{ if env.feature_prs != '' }}:
-            🚀 **Features:**
-            ${{ env.feature_prs }}
-            ---
-            
-            ${{ if env.bug_prs != '' }}:
-            🐞 **Bugs:**
-            ${{ env.bug_prs }}
-            ---
-            
-            ${{ if env.other_prs != '' }}:
-            🔧 **Others:**
-            ${{ env.other_prs }}
-            ---
-
-            📜 **Full Changelog:**
-            ${{ env.full_changelog }}
+          body: ${{ env.release_notes }}
           draft: false
           prerelease: false
+
 
       
       # 🔹 Imprimir las notas del release en la salida
