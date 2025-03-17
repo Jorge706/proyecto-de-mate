@@ -62,7 +62,6 @@ jobs:
       
           # Hacer la solicitud a la API para obtener los cambios entre las versiones
           compare_data=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$compare_url")
-          echo= "$compare_data"
           # Extraer los commits y PRs del resultado
           pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) |
             "- [\(.commit.message | match("#[0-9]+").string)](https://github.com/\(.author.login)/proyecto-de-mate/pull/\(.commit.message | match("#[0-9]+").string)) from branch: \(.parents[0].sha) by @\(.author.login) in branch \(.commit.tree.sha)"')
