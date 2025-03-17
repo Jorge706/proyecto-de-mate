@@ -143,8 +143,6 @@ jobs:
             echo "EOF"
           } >> $GITHUB_ENV
 
-          echo "release_notes<<EOF" >> $GITHUB_ENV
-          echo "$release_notes" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
           echo "full_changelog<<EOF" >> $GITHUB_ENV
@@ -194,4 +192,3 @@ jobs:
           echo "🔧 Others:"
           echo "${{ env.other_prs }}"
           echo ""
-          echo "${{ env.formatted_release_notes }}"
