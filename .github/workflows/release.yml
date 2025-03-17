@@ -37,7 +37,7 @@ jobs:
             echo "No previous 'real' release found. Skipping compare."
             exit 0
           fi
-
+          echo "$last_real_tag"
           echo "last_real_tag=$last_real_tag" >> $GITHUB_ENV
 
       - name: Create Release without Notes
