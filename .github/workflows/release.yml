@@ -51,7 +51,7 @@ jobs:
 
           # Extraer PRs desde los commits
           pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) | "- PR #\(.commit.message | match("#[0-9]+").string) by \(.author.login) in \(.html_url)"')
-
+          echo "$pr_list"
           # Extraer todos los commits para agregarlos al changelog
           commit_list=$(echo "$compare_data" | jq -r '.commits[] | "- \(.commit.message)"')
 
