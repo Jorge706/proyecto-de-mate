@@ -21,24 +21,40 @@ jobs:
           echo "new_tag=$new_tag" >> $GITHUB_ENV
 
       # 🔍 Obtener el último release cuyo NOMBRE comience con "real"
+
       - name: Get last release starting with "real"
         id: get_last_real_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          last_real_release=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases" | \
-            jq -r '[.[] | select(.name | test("^real"))] | sort_by(.published_at) | last')
+          # Obtener todas las releases
+          releases_data=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases")
+          
+          # Imprimir la respuesta completa para depuración
+          echo "Releases Data: $releases_data"
+          
+          # Filtrar releases cuyo nombre comienza con "real"
+          last_real_release=$(echo "$releases_data" | jq -r '[.[] | select(.name | test("^real"))] | sort_by(.published_at) | last')
 
+          # Imprimir el release encontrado
+          echo "Last real release: $last_real_release"
+
+          # Extraer el tag_name
           last_real_tag=$(echo "$last_real_release" | jq -r '.tag_name')
-          echo "$last_real_tag"
-  
+
+          # Mostrar el valor obtenido
+          echo "last_real_tag: $last_real_tag"
+
+          # Verificación de existencia
           if [[ -z "$last_real_tag" || "$last_real_tag" == "null" ]]; then
-            echo "No previous 'real' release found. Skipping compare."
+            echo "❌ No previous 'real' release found. Skipping compare."
             exit 0
           fi
 
+          # Guardar en el entorno
           echo "last_real_tag=$last_real_tag" >> $GITHUB_ENV
+
 
       # 🔍 Obtener cambios entre el último "real" release y el nuevo
       - name: Get changes between releases
