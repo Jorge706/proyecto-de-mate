@@ -150,33 +150,52 @@ jobs:
           echo "full_changelog<<EOF" >> $GITHUB_ENV
           echo "$full_changelog" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-
+          
       - name: Generate Release Notes
         id: generate_notes
         run: |
-          release_notes=""
+          # Crear un archivo temporal para almacenar las notas
+          echo "" > release_notes.md
 
-          # Add Features if they exist
+          # Agregar Features si existen
           if [[ -n "${{ env.feature_prs }}" ]]; then
-            release_notes="🚀 **Features:**\n${{ env.feature_prs }}\n---\n"
+            echo "## 🚀 Features" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "${{ env.feature_prs }}" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "---" >> release_notes.md
+            echo "" >> release_notes.md
           fi
 
-          # Add Bugs if they exist
+          # Agregar Bugs si existen
           if [[ -n "${{ env.bug_prs }}" ]]; then
-            release_notes+="🐞 **Bugs:**\n${{ env.bug_prs }}\n---\n"
+            echo "## 🐞 Bugs" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "${{ env.bug_prs }}" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "---" >> release_notes.md
+            echo "" >> release_notes.md
           fi
 
-          # Add Others if they exist
+          # Agregar Others si existen
           if [[ -n "${{ env.other_prs }}" ]]; then
-            release_notes+="🔧 **Others:**\n${{ env.other_prs }}\n---\n"
+            echo "## 🔧 Others" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "${{ env.other_prs }}" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "---" >> release_notes.md
+            echo "" >> release_notes.md
           fi
 
-          # Add Full Changelog
-          release_notes+="📜 **Full Changelog:**\n${{ env.full_changelog }}"
+          # Agregar Full Changelog al final
+          echo "## 📜 Full Changelog" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "${{ env.full_changelog }}" >> release_notes.md
 
-          # Convert newlines to actual line breaks
-          # Use printf to replace '\n' with real newlines in the release_notes
-          printf "%s" "$release_notes" >> $GITHUB_ENV
+          # Guardar el contenido en una variable de entorno
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          cat release_notes.md >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Create Release with Changelog
         id: create_release
@@ -186,20 +205,6 @@ jobs:
         with:
           tag_name: ${{ env.new_tag }}
           release_name: Release ${{ env.new_tag }}
-          body: ${{ env.release_notes }}
+          body: ${{ env.RELEASE_NOTES }}
           draft: false
           prerelease: false
-
-
-      # 🔹 Imprimir las notas del release en la salida
-      - name: Print release notes
-        run: |
-          echo "Release notes for the new release:"
-          echo "🚀 Features:"
-          echo "${{ env.feature_prs }}"
-          echo "🐞 Bugs:"
-          echo "${{ env.bug_prs }}"
-          echo "🔧 Others:"
-          echo "${{ env.other_prs }}"
-          echo ""
-          echo "${{ env.formatted_release_notes }}"
