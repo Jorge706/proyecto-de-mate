@@ -67,7 +67,7 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
 
-      # 📢 Crear el Release con el changelog generado
+# 📢 Crear el Release con el changelog generado
       - name: Create Release with Changelog
         id: create_release
         uses: actions/create-release@v1
@@ -78,16 +78,14 @@ jobs:
           release_name: Release ${{ env.new_tag }}
           body: |
             ## What's Changed
-            ${{ env.pr_list }}
-
-            ## New Contributors
-            ${{ env.commit_list }}
-
-            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}
+            ${{ env.release_notes }}
+      
           draft: false
           prerelease: false
-
+      
+      # 🔹 Imprimir las notas del release en la salida
       - name: Print release notes
         run: |
           echo "Release notes for the new release:"
-          echo "${{ steps.create_release.outputs.body }}"
+          echo "${{ env.release_notes }}"
+
