@@ -62,20 +62,19 @@ jobs:
       
           # Hacer la solicitud a la API para obtener los cambios entre las versiones
           compare_data=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$compare_url")
-          echo="$compare_data"
+          echo "$compare_data"
       
           # Extraer los PRs del resultado
-          # pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) | 
-           # "- [\(.commit.message | match("#[0-9]+").string)](https://github.com/${{ github.repository }}/pull/\(.commit.message | match("#[0-9]+").string)) from branch: \(.parents[0].sha) by @\(.author.login) in branch \(.commit.tree.sha)"')
+           pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) |  "- [\(.commit.message | match("#[0-9]+").string)](https://github.com/${{ github.repository }}/pull/\(.commit.message | match("#[0-9]+").string)) from branch: \(.parents[0].sha) by @\(.author.login) in branch \(.commit.tree.sha)"')
       
           # Crear el changelog con los PRs y commits
-          # changelog="## What's Changed\n"
-          # changelog+="$pr_list\n"
+           changelog="## What's Changed\n"
+           changelog+="$pr_list\n"
       
           # Agregar el enlace al changelog completo
-          # changelog+="\n**Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}"
+           changelog+="\n**Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}"
       
           # Guardar las notas generadas en una variable de entorno para usarla más adelante
-          # echo "changelog<<EOF" >> $GITHUB_ENV
-          # echo "$changelog" >> $GITHUB_ENV
-          # echo "EOF" >> $GITHUB_ENV
+           echo "changelog<<EOF" >> $GITHUB_ENV
+           echo "$changelog" >> $GITHUB_ENV
+           echo "EOF" >> $GITHUB_ENV
