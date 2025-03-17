@@ -85,7 +85,7 @@ jobs:
           tag_name: ${{ env.new_tag }}
           release_name: Release ${{ env.new_tag }}
           body: |
-            ${{ env.release_notes }}
+            ${{ env.formatted_release_notes }}
       
           draft: false
           prerelease: false
@@ -94,5 +94,5 @@ jobs:
       - name: Print release notes
         run: |
           echo "Release notes for the new release:"
-          echo "${{ env.release_notes }}"
+          echo "${{ env.formatted_release_notes }}"
 
