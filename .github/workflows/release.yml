@@ -104,7 +104,7 @@ jobs:
             pr_branch=$(echo "$pr_data" | jq -r '.head.ref')
 
             # Clasificar los PRs en características, bugs y otros según el prefijo de la rama
-            if [[ "$pr_branch" == feat* ]]; then
+            if [[ "$pr_branch" == test* ]]; then
               feature_prs+=("- [$pr_title]($pr_url) in branch \`$pr_branch\`")
             elif [[ "$pr_branch" == fix* ]]; then
               bug_prs+=("- [$pr_title]($pr_url) in branch \`$pr_branch\`")
