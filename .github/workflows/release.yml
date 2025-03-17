@@ -20,25 +20,40 @@ jobs:
           new_tag="releas-v1.0.0-$(date +%Y%m%d%H%M%S)"
           echo "new_tag=$new_tag" >> $GITHUB_ENV
 
-      # 🔍 Obtener el último release cuyo NOMBRE comience con "real"
       - name: Get last release starting with "real"
         id: get_last_real_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          last_real_release=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases" | \
-            jq -r '[.[] | select(.name | test("^real"))] | sort_by(.published_at) | last')
-
+          # Hacer la solicitud para obtener las releases
+          releases_data=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases")
+          
+          # Imprimir la respuesta completa para depuración
+          echo "Releases Data: $releases_data"
+          
+          # Filtrar las releases cuyo nombre comienza con "real"
+          last_real_release=$(echo "$releases_data" | jq -r '[.[] | select(.name | test("^real"))] | sort_by(.published_at) | last')
+          
+          # Imprimir el release encontrado para depuración
+          echo "Last real release: $last_real_release"
+          
+          # Extraer el tag_name del último release
           last_real_tag=$(echo "$last_real_release" | jq -r '.tag_name')
-          echo "$last_real_tag"
-  
+
+          # Imprimir el valor de last_real_tag para depuración
+          echo "last_real_tag: $last_real_tag"
+
+          # Verificar si se obtuvo un valor válido para last_real_tag
           if [[ -z "$last_real_tag" || "$last_real_tag" == "null" ]]; then
             echo "No previous 'real' release found. Skipping compare."
             exit 0
           fi
-          echo "$last_real_tag"
+
+          # Si todo es correcto, guardar el valor de last_real_tag en el entorno
           echo "last_real_tag=$last_real_tag" >> $GITHUB_ENV
+
+
 
       - name: Create Release without Notes
         id: create_release
