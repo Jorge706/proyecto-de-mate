@@ -64,6 +64,7 @@ jobs:
 
 
       # 🔍 Obtener cambios entre el último "real" release y el nuevo
+      # 🔍 Obtener cambios entre el último "real" release y el nuevo
       - name: Get changes between releases
         id: get_changes
         env:
@@ -105,7 +106,10 @@ jobs:
             pr_list+=("$pr_entry")
           done < <(echo "$release_notes" | grep -Eo '\* .+ by @[^ ]+ in https://github.com/.+/pull/[0-9]+')
 
-          # Guardar la lista en una variable de entorno
+          # Extraer el Full Changelog
+          full_changelog=$(echo "$notes_data" | jq -r '.body' | grep -Eo '\*\*Full Changelog\*\*: .*')
+
+          # Guardar la lista y el full_changelog en el entorno
           {
             echo "pr_list<<EOF"
             for pr in "${pr_list[@]}"; do
@@ -117,7 +121,10 @@ jobs:
           echo "release_notes<<EOF" >> $GITHUB_ENV
           echo "$release_notes" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-          echo "prlis: $pr_list"
+
+          echo "full_changelog<<EOF" >> $GITHUB_ENV
+          echo "$full_changelog" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       # 📢 Crear el Release con el changelog generado
       - name: Create Release with Changelog
@@ -133,7 +140,15 @@ jobs:
             
             ${{ env.pr_list }}
 
+            ---
+            🔍 **Notas del Release:**
+            
+            ${{ env.release_notes }}
 
+            ---
+            📜 **Full Changelog:**
+            
+            ${{ env.full_changelog }}
           draft: false
           prerelease: false
       
