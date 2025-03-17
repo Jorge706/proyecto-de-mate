@@ -59,7 +59,7 @@ jobs:
         run: |
           # URL para comparar los cambios entre las versiones
           compare_url="https://api.github.com/repos/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}"
-      
+          echo "$compare_url"
           # Hacer la solicitud a la API para obtener los cambios entre las versiones
           compare_data=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$compare_url")
           echo "$compare_data"
