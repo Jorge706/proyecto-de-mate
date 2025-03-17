@@ -76,28 +76,28 @@ jobs:
           echo "$pr_info" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-        - name: Generate Release Notes using Compare
-          id: generate_release_notes
-          run: |
-            # URL para comparar los cambios entre las versiones
-            compare_url="https://api.github.com/repos/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}"
-        
-            # Hacer la solicitud a la API para obtener los cambios entre las versiones
-            compare_data=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$compare_url")
-        
-            # Extraer los commits y PRs del resultado
-            commit_list=$(echo "$compare_data" | jq -r '.commits[] | "- \(.commit.message) by \(.author.login) [\(.html_url)]"')
-            pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) | "- PR #\(.commit.message | match("#[0-9]+").string) by \(.author.login) [\(.html_url)]"')
-        
-            # Crear el changelog con los commits y PRs
-            changelog="## What's Changed\n"
-            changelog+="$commit_list\n"
-            changelog+="$pr_list\n"
-        
-            # Guardar las notas generadas en una variable de entorno para usarla más adelante
-            echo "changelog<<EOF" >> $GITHUB_ENV
-            echo "$changelog" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
+      - name: Generate Release Notes using Compare
+        id: generate_release_notes
+        run: |
+          # URL para comparar los cambios entre las versiones
+          compare_url="https://api.github.com/repos/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}"
+      
+          # Hacer la solicitud a la API para obtener los cambios entre las versiones
+          compare_data=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$compare_url")
+      
+          # Extraer los commits y PRs del resultado
+          commit_list=$(echo "$compare_data" | jq -r '.commits[] | "- \(.commit.message) by \(.author.login) [\(.html_url)]"')
+          pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) | "- PR #\(.commit.message | match("#[0-9]+").string) by \(.author.login) [\(.html_url)]"')
+      
+          # Crear el changelog con los commits y PRs
+          changelog="## What's Changed\n"
+          changelog+="$commit_list\n"
+          changelog+="$pr_list\n"
+      
+          # Guardar las notas generadas en una variable de entorno para usarla más adelante
+          echo "changelog<<EOF" >> $GITHUB_ENV
+          echo "$changelog" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
 
           
