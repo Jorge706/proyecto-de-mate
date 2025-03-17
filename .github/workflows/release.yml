@@ -109,6 +109,7 @@ jobs:
 
             # Extraer el nombre del branch desde el PR
             branch_name=$(echo "$pr_data" | jq -r '.head.ref')
+            echo"$branch_name"
 
             # Insertar el nombre del branch en el formato adecuado
             formatted_pr=$(echo "$pr_line" | sed -E 's/(in https:\/\/github\.com\/.+\/pull\/[0-9]+)/\1 in branch `'"$branch_name"'`/')
