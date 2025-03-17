@@ -113,7 +113,7 @@ jobs:
             else
               other_prs+=("- [$pr_title]($pr_url) by @$pr_author ")
             fi
-          done < <(echo "$release_notes" | grep -Eo '\* .+ by @[^ ]+ in https://github.com/.+/pull/[0-9]+')
+          done <<< "$release_notes"
 
           # Extraer el Full Changelog
           full_changelog=$(echo "$notes_data" | jq -r '.body' | grep -Eo '\*\*Full Changelog\*\*: .*')
