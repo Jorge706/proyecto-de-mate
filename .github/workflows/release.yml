@@ -66,6 +66,14 @@ jobs:
           echo "$release_notes" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
+      - name: Format Release Notes
+        id: format_release_notes
+        run: |
+          formatted_prs=$(echo "${{ env.release_notes }}" | awk -v RS='\n' '/ by @/ {sub(/ by @.*/, "", $0); sub(/\*\*Full Changelog.*/, ""); print "- [" $0 "]"}')
+      
+          echo "formatted_release_notes<<EOF" >> $GITHUB_ENV
+          echo "$formatted_prs" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
 # 📢 Crear el Release con el changelog generado
       - name: Create Release with Changelog
