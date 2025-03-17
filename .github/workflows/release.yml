@@ -77,7 +77,6 @@ jobs:
           tag_name: ${{ env.new_tag }}
           release_name: Release ${{ env.new_tag }}
           body: |
-            ## What's Changed
             ${{ env.release_notes }}
       
           draft: false
