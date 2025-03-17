@@ -97,7 +97,7 @@ jobs:
             title=$(echo "$line" | jq -r '.title')
             pr_number=$(echo "$line" | jq -r '.number')
             branch=$(echo "$line" | jq -r '.head.ref')
-            echo "$branch"
+            echo "branch : $branch"
 
             case "$branch" in
               test/*)
