@@ -76,6 +76,7 @@ jobs:
           echo "$pr_info" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
+          
       - name: Update Release with Notes
         id: update_release
         run: |
@@ -89,7 +90,7 @@ jobs:
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             -d '{
-              "body": "## What's Changed\n'${{ env.pr_info }}'\n\n**Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}"
+              "body": "${{ env.changelog }}"
             }')
       
           echo "Release updated with notes"
