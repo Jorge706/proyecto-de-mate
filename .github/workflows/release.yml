@@ -56,7 +56,7 @@ jobs:
               "target_commitish": "main",
               "previous_tag_name": "${{ env.last_real_tag }}"
             }')
-      
+          echo "$last_real_tag"
           echo "$notes_data"
       
           # Extraer los release notes generados
