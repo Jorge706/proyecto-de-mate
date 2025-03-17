@@ -63,6 +63,7 @@ jobs:
           echo "last_real_tag=$last_real_tag" >> $GITHUB_ENV
 
 
+      # 🔍 Obtener cambios entre el último "real" release y el nuevo
       - name: Get changes between releases
         id: get_changes
         env:
@@ -78,46 +79,43 @@ jobs:
               "target_commitish": "main",
               "previous_tag_name": "${{ env.last_real_tag }}"
             }')
+
           echo "$last_real_tag"
           echo "$notes_data"
       
           # Extraer los release notes generados
           release_notes=$(echo "$notes_data" | jq -r '.body')
-      
-          echo "release_notes<<EOF" >> $GITHUB_ENV
-          echo "$release_notes" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
 
-      - name: Format Release Notes
-        id: format_release_notes
-        run: |
-          formatted_prs=""
-          
+          # Crear una lista de PRs con sus nombres y enlaces
+          pr_list=()
+
           # Extraer las líneas que contienen PRs
-          pr_lines=$(echo "${{ env.release_notes }}" | grep -Eo '\* .+ by @[^ ]+ in https://github.com/.+/pull/[0-9]+')
-
-          for pr_line in $pr_lines; do
-            pr_url=$(echo "$pr_line" | grep -Eo 'https://github.com/.+/pull/[0-9]+')
+          while IFS= read -r line; do
+            pr_url=$(echo "$line" | grep -Eo 'https://github.com/.+/pull/[0-9]+')
             pr_number=$(echo "$pr_url" | grep -Eo '[0-9]+$')
+            pr_title=$(echo "$line" | sed -E 's/\* (.+) by @[^ ]+ in https:\/\/github\.com\/.+\/pull\/[0-9]+/\1/')
 
             # Obtener información del PR para extraer la rama
             pr_api_url="https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number"
             pr_data=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" "$pr_api_url")
             pr_branch=$(echo "$pr_data" | jq -r '.head.ref')
 
-            # Formatear la salida incluyendo la rama
-            formatted_prs+=$(echo "$pr_line" | sed -E "s|(https://github\.com/.+/pull/[0-9]+)|\1 in branch '$pr_branch'|")$'\n'
-          done
+            # Formatear y almacenar en la lista
+            pr_entry="- [$pr_title]($pr_url) in branch \`$pr_branch\`"
+            pr_list+=("$pr_entry")
+          done < <(echo "$release_notes" | grep -Eo '\* .+ by @[^ ]+ in https://github.com/.+/pull/[0-9]+')
 
-          # Extraer el Full Changelog
-          full_changelog=$(echo "${{ env.release_notes }}" | grep -Eo '\*\*Full Changelog\*\*: .*')
+          # Guardar la lista en una variable de entorno
+          {
+            echo "pr_list<<EOF"
+            for pr in "${pr_list[@]}"; do
+              echo "$pr"
+            done
+            echo "EOF"
+          } >> $GITHUB_ENV
 
-          echo "formatted_release_notes<<EOF" >> $GITHUB_ENV
-          echo "$formatted_prs" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-      
-          echo "full_changelog<<EOF" >> $GITHUB_ENV
-          echo "$full_changelog" >> $GITHUB_ENV
+          echo "release_notes<<EOF" >> $GITHUB_ENV
+          echo "$release_notes" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
       
