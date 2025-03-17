@@ -51,7 +51,7 @@ jobs:
           body: ""
           draft: false
           prerelease: false
-
+          
       - name: Generate Release Notes using Compare
         id: generate_release_notes
         env:
@@ -62,9 +62,10 @@ jobs:
       
           # Hacer la solicitud a la API para obtener los cambios entre las versiones
           compare_data=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$compare_url")
-          # Extraer los commits y PRs del resultado
-          pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) |
-            "- [\(.commit.message | match("#[0-9]+").string)](https://github.com/\(.author.login)/proyecto-de-mate/pull/\(.commit.message | match("#[0-9]+").string)) from branch: \(.parents[0].sha) by @\(.author.login) in branch \(.commit.tree.sha)"')
+      
+          # Extraer los PRs del resultado
+          pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) | 
+            "- [\(.commit.message | match("#[0-9]+").string)](https://github.com/${{ github.repository }}/pull/\(.commit.message | match("#[0-9]+").string)) from branch: \(.parents[0].sha) by @\(.author.login) in branch \(.commit.tree.sha)"')
       
           # Crear el changelog con los PRs y commits
           changelog="## What's Changed\n"
@@ -77,22 +78,3 @@ jobs:
           echo "changelog<<EOF" >> $GITHUB_ENV
           echo "$changelog" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-
-      - name: Update Release with Notes
-        id: update_release
-        run: |
-          # Obtener el ID del release creado
-          release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.new_tag }}" | jq -r '.id')
-      
-          # Actualizar el release con las notas
-          update_url="https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
-          update_data=$(curl -s -X PATCH "$update_url" \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -d '{
-              "body": "${{ env.changelog }}"
-            }')
-      
-          echo "Release updated with notes"
-
