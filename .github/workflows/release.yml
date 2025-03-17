@@ -20,42 +20,71 @@ jobs:
           new_tag="releas-v1.0.0-$(date +%Y%m%d%H%M%S)"
           echo "new_tag=$new_tag" >> $GITHUB_ENV
 
+      # 🔍 Obtener el último release cuyo NOMBRE comience con "real"
       - name: Get last release starting with "real"
         id: get_last_real_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Hacer la solicitud para obtener las releases
-          releases_data=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases")
-          
-          # Imprimir la respuesta completa para depuración
-          echo "Releases Data: $releases_data"
-          
-          # Filtrar las releases cuyo nombre comienza con "real"
-          last_real_release=$(echo "$releases_data" | jq -r '[.[] | select(.name | test("^real"))] | sort_by(.published_at) | last')
-          
-          # Imprimir el release encontrado para depuración
-          echo "Last real release: $last_real_release"
-          
-          # Extraer el tag_name del último release
+          last_real_release=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases" | \
+            jq -r '[.[] | select(.name | test("^real"))] | sort_by(.published_at) | last')
+
           last_real_tag=$(echo "$last_real_release" | jq -r '.tag_name')
-
-          # Imprimir el valor de last_real_tag para depuración
-          echo "last_real_tag: $last_real_tag"
-
-          # Verificar si se obtuvo un valor válido para last_real_tag
+          echo "$last_real_tag"
+  
           if [[ -z "$last_real_tag" || "$last_real_tag" == "null" ]]; then
             echo "No previous 'real' release found. Skipping compare."
             exit 0
           fi
 
-          # Si todo es correcto, guardar el valor de last_real_tag en el entorno
           echo "last_real_tag=$last_real_tag" >> $GITHUB_ENV
 
+      # 🔍 Obtener cambios entre el último "real" release y el nuevo
+      - name: Get changes between releases
+        id: get_changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          notes_url="https://api.github.com/repos/${{ github.repository }}/releases/generate-notes"
+          
+          notes_data=$(curl -s -X POST "$notes_url" \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d '{
+              "tag_name": "${{ env.new_tag }}",
+              "target_commitish": "main",
+              "previous_tag_name": "${{ env.last_real_tag }}"
+            }')
+      
+          echo "$notes_data"
+      
+          # Extraer los release notes generados
+          release_notes=$(echo "$notes_data" | jq -r '.body')
+      
+          echo "release_notes<<EOF" >> $GITHUB_ENV
+          echo "$release_notes" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
+      - name: Format Release Notes
+        id: format_release_notes
+        run: |
+          formatted_prs=$(echo "${{ env.release_notes }}" | grep -Eo '\* .+ by @[^ ]+ in https://github.com/.+/pull/[0-9]+' | sed -E 's/\* (.+) by (@[^ ]+) in (https:\/\/github\.com\/.+\/pull\/[0-9]+)/- [\1](\3) \2/')
+      
+          # Extraer el Full Changelog
+          full_changelog=$(echo "${{ env.release_notes }}" | grep -Eo '\*\*Full Changelog\*\*: .*')
+      
+          echo "formatted_release_notes<<EOF" >> $GITHUB_ENV
+          echo "$formatted_prs" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+      
+          echo "full_changelog<<EOF" >> $GITHUB_ENV
+          echo "$full_changelog" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+      
 
-      - name: Create Release without Notes
+# 📢 Crear el Release con el changelog generado
+      - name: Create Release with Changelog
         id: create_release
         uses: actions/create-release@v1
         env:
@@ -63,33 +92,15 @@ jobs:
         with:
           tag_name: ${{ env.new_tag }}
           release_name: Release ${{ env.new_tag }}
-          body: ""
+          body: |
+            ${{ env.formatted_release_notes }}
+
+            ${{ env.full_changelog }}
           draft: false
           prerelease: false
-          
-      - name: Generate Release Notes using Compare
-        id: generate_release_notes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      # 🔹 Imprimir las notas del release en la salida
+      - name: Print release notes
         run: |
-          # URL para comparar los cambios entre las versiones
-          compare_url="https://api.github.com/repos/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}"
-          echo "$compare_url"
-          # Hacer la solicitud a la API para obtener los cambios entre las versiones
-          compare_data=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$compare_url")
-          echo "$compare_data"
-      
-          # Extraer los PRs del resultado
-           pr_list=$(echo "$compare_data" | jq -r '.commits[] | select(.commit.message | test("#[0-9]+")) |  "- [\(.commit.message | match("#[0-9]+").string)](https://github.com/${{ github.repository }}/pull/\(.commit.message | match("#[0-9]+").string)) from branch: \(.parents[0].sha) by @\(.author.login) in branch \(.commit.tree.sha)"')
-      
-          # Crear el changelog con los PRs y commits
-           changelog="## What's Changed\n"
-           changelog+="$pr_list\n"
-      
-          # Agregar el enlace al changelog completo
-           changelog+="\n**Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.last_real_tag }}...${{ env.new_tag }}"
-      
-          # Guardar las notas generadas en una variable de entorno para usarla más adelante
-           echo "changelog<<EOF" >> $GITHUB_ENV
-           echo "$changelog" >> $GITHUB_ENV
-           echo "EOF" >> $GITHUB_ENV
+          echo "Release notes for the new release:"
+          echo "${{ env.formatted_release_notes }}"
