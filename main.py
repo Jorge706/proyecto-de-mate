@@ -27,31 +27,37 @@ def euler_mejorado(f, x0, y0, h, xn, expr):
     if h <= 0 or x0 >= xn:
         messagebox.showerror('Error', 'El valor de h debe ser positivo y x0 debe ser menor que xn')
         return [], []
-    
-    x_values = [round(x0,1)]
+
+    # Inicialización de listas para almacenar resultados
+    x_values = [x0]
     y_values = [y0]
+    y_pred_values = []  # (yn+1)*
+    x_next_values = []  # xn+1
+    y_next_values = []  # yn+1
     k1_values = []
-    y_pred_values = []
     k2_values = []
-    y_siguiente_values = []
-    
+
     while x0 < xn:
-        k1 = f(x0, y0, expr)
-        k2 = f(x0 + h, y0 + h * k1, expr)
-        
-        # Valores de k1, k2, y_pred, y_siguiente
+        k1 = f(x0, y0, expr)  # k1 = f(xn, yn)
+        y_pred = y0 + h * k1  # (yn+1)* = yn + h * k1
+        k2 = f(x0 + h, y_pred, expr)  # k2 = f(xn+1, (yn+1)*)
+
+        # Cálculo del nuevo valor de y usando Euler Mejorado
+        y_siguiente = y0 + (h / 2) * (k1 + k2)  # yn+1
+
+        # Guardar valores en listas
         k1_values.append(k1)
-        y_pred = y0 + h * k1  # predicción de y
         y_pred_values.append(y_pred)
         k2_values.append(k2)
-        y_siguiente = y0 + (h / 2) * (k1 + k2)  # valor de y siguiente
-        y_siguiente_values.append(y_siguiente)
-        
-        y0 = y_siguiente  # actualiza y0 con el valor siguiente
-        x0 += h
-        
-        # Agrega x y y a las listas
-        x_values.append(round(x0, 1))
+        x_next = x0 + h  # xn+1
+        x_next_values.append(x_next)
+        y_next_values.append(y_siguiente)
+
+        # Actualizar x0 e y0 para la siguiente iteración
+        x0 = x_next
+        y0 = y_siguiente
+
+        x_values.append(x0)
         y_values.append(y0)
 
     # Crear ventana de resultados
@@ -59,18 +65,20 @@ def euler_mejorado(f, x0, y0, h, xn, expr):
     resultados_window.title("Resultados Euler Mejorado")
 
     # Configurar la tabla
-    tree = ttk.Treeview(resultados_window, columns=("Paso", "x", "y", "k1", "y_pred", "k2", "y_siguiente"), show='headings')
+    tree = ttk.Treeview(resultados_window, columns=("Paso", "xn", "yn", "(yn+1)*", "xn+1", "yn+1", "k1", "k2"), show='headings')
     tree.heading("Paso", text="Paso")
-    tree.heading("x", text="x")
-    tree.heading("y", text="y")
+    tree.heading("xn", text="xn")
+    tree.heading("yn", text="yn")
+    tree.heading("(yn+1)*", text="(yn+1)*")
+    tree.heading("xn+1", text="xn+1")
+    tree.heading("yn+1", text="yn+1")
     tree.heading("k1", text="k1")
-    tree.heading("y_pred", text="y_pred")
     tree.heading("k2", text="k2")
-    tree.heading("y_siguiente", text="y_siguiente")
     tree.pack(expand=True, fill='both')
 
-    for paso, (x, y, k1, y_pred, k2, y_siguiente) in enumerate(zip(x_values, y_values, k1_values, y_pred_values, k2_values, y_siguiente_values)):
-        tree.insert("", "end", values=(paso, x, y, k1, y_pred, k2, y_siguiente))
+    # Insertar datos en la tabla
+    for paso, (xn, yn, y_pred, xn1, yn1, k1, k2) in enumerate(zip(x_values[:-1], y_values[:-1], y_pred_values, x_next_values, y_next_values, k1_values, k2_values)):
+        tree.insert("", "end", values=(paso, round(xn, 4), round(yn, 4), round(y_pred, 4), round(xn1, 4), round(yn1, 4), round(k1, 4), round(k2, 4)))
 
     # Graficar los resultados
     plt.plot(x_values, y_values, marker='o', label='Euler Mejorado')
@@ -82,6 +90,7 @@ def euler_mejorado(f, x0, y0, h, xn, expr):
     plt.show()
 
     return x_values, y_values
+
 
 # Método de Runge-Kutta de cuarto orden
 def runge_kutta(f, x0, y0, h, xn, expr):
