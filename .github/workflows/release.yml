@@ -76,9 +76,8 @@ jobs:
             -d '{
               "tag_name": "${{ env.new_tag }}",
               "target_commitish": "main",
-              "previous_tag_name": "${{ env.last_real_tag }}"
+              "previous_tag_name": "${{ env.last_real_tag }}",
               "configuration_file_path": ".github/custom_release_config.yml"
-
             }')
 
           echo "$last_real_tag"
