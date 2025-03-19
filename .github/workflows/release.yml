@@ -83,7 +83,7 @@ jobs:
           echo "$last_real_tag"
           echo "data: $notes_data"
 
-          RELEASE_NOTES=$(echo "$notes_data" | jq -r '.body')
+          RELEASE_NOTES=$(echo "$notes_data" | jq -r '.body' | sed ':a;N;$!ba;s/\n/\\n/g')
           echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
 
       - name: Create Release with Generated Notes
