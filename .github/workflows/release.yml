@@ -62,7 +62,6 @@ jobs:
 
           echo "last_real_tag=$last_real_tag" >> $GITHUB_ENV
 
-
       # 🔍 Obtener cambios entre el último "real" release y el nuevo
       - name: Get changes between releases
         id: get_changes
@@ -70,7 +69,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           notes_url="https://api.github.com/repos/${{ github.repository }}/releases/generate-notes"
-          
+
           notes_data=$(curl -s -X POST "$notes_url" \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
@@ -82,7 +81,7 @@ jobs:
 
           echo "$last_real_tag"
           echo "$notes_data"
-          
+
           # Extraer los release notes generados
           release_notes=$(echo "$notes_data" | jq -r '.body')
 
@@ -150,54 +149,35 @@ jobs:
           echo "full_changelog<<EOF" >> $GITHUB_ENV
           echo "$full_changelog" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-          
-      - name: Generate Release Notes
+
+      - name: Generate Release Notes with Configuration File
         id: generate_notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Crear un archivo temporal para almacenar las notas
-          echo "" > release_notes.md
+          # Generar las notas del release usando la API de GitHub con un archivo de configuración
+          response=$(curl -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/releases/generate-notes \
+            -d "{
+              \"tag_name\": \"${{ env.new_tag }}\",
+              \"target_commitish\": \"${{ env.new_tag }}\",
+              \"previous_tag_name\": \"${{ env.last_real_tag }}\",
+              \"configuration_file_path\": \".github/custom_release_config.yml\"
+            }")
 
-          # Agregar Features si existen
-          if [[ -n "${{ env.feature_prs }}" ]]; then
-            echo "## 🚀 Features" >> release_notes.md
-            echo "" >> release_notes.md
-            echo "${{ env.feature_prs }}" >> release_notes.md
-            echo "" >> release_notes.md
-            echo "---" >> release_notes.md
-            echo "" >> release_notes.md
-          fi
+          # Extraer las notas del release del JSON de respuesta
+          release_notes=$(echo "$response" | jq -r '.body')
 
-          # Agregar Bugs si existen
-          if [[ -n "${{ env.bug_prs }}" ]]; then
-            echo "## 🐞 Bugs" >> release_notes.md
-            echo "" >> release_notes.md
-            echo "${{ env.bug_prs }}" >> release_notes.md
-            echo "" >> release_notes.md
-            echo "---" >> release_notes.md
-            echo "" >> release_notes.md
-          fi
-
-          # Agregar Others si existen
-          if [[ -n "${{ env.other_prs }}" ]]; then
-            echo "## 🔧 Others" >> release_notes.md
-            echo "" >> release_notes.md
-            echo "${{ env.other_prs }}" >> release_notes.md
-            echo "" >> release_notes.md
-            echo "---" >> release_notes.md
-            echo "" >> release_notes.md
-          fi
-
-          # Agregar Full Changelog al final
-          echo "## 📜 Full Changelog" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "${{ env.full_changelog }}" >> release_notes.md
-
-          # Guardar el contenido en una variable de entorno
+          # Guardar las notas en una variable de entorno
           echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-          cat release_notes.md >> $GITHUB_ENV
+          echo "$release_notes" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      - name: Create Release with Changelog
+      - name: Create Release with Generated Notes
         id: create_release
         uses: actions/create-release@v1
         env:
