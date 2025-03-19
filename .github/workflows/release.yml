@@ -83,8 +83,9 @@ jobs:
           echo "$last_real_tag"
           echo "data: $notes_data"
 
-          RELEASE_NOTES=$(echo "$notes_data" | jq -r '.body' | sed ':a;N;$!ba;s/\n/\\n/g')
-          echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
+          # Guardar las notas en un archivo .md
+          RELEASE_NOTES=$(echo "$notes_data" | jq -r '.body')
+          echo "$RELEASE_NOTES" > release_notes.md
 
       - name: Create Release with Generated Notes
         id: create_release
@@ -94,6 +95,6 @@ jobs:
         with:
           tag_name: ${{ env.new_tag }}
           release_name: Release ${{ env.new_tag }}
-          body: ${{ env.RELEASE_NOTES }}
+          body_path: ./release_notes.md
           draft: false
           prerelease: false
