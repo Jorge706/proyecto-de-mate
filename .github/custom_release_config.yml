@@ -1,43 +1,37 @@
 changelog:
-  template: |
-    <!-- Release notes generated using configuration in .github/custom_release_config.yml at main -->
-
-    ## What's Changed
-
-    ### 🚀 Features
-    $CHANGES_FEATURES
-
-    ### 🐞 Bug Fixes
-    $CHANGES_BUGS
-
-    ### 🔧 Others
-    $CHANGES_OTHERS
-
-    ## New Contributors
-    $CONTRIBUTORS
-
-    **Full Changelog**: https://github.com/Jorge706/proyecto-de-mate/compare/@PREVIOUS_TAG@...@RELEASE_VERSION@
-
   categories:
     - title: 🚀 Features
       labels:
         - feature
-      prefix: "* "
-      change-template: "[#${NUMBER} ${TITLE}](https://github.com/Jorge706/proyecto-de-mate/pull/${NUMBER}) by @${AUTHOR}"
-    
     - title: 🐞 Bug Fixes
       labels:
         - bug
-      prefix: "* "
-      change-template: "[#${NUMBER} ${TITLE}](https://github.com/Jorge706/proyecto-de-mate/pull/${NUMBER}) by @${AUTHOR}"
-
     - title: 🔧 Others
       labels:
         - other
-      prefix: "* "
-      change-template: "[#${NUMBER} ${TITLE}](https://github.com/Jorge706/proyecto-de-mate/pull/${NUMBER}) by @${AUTHOR}"
-
   sort: DESC
   exclude:
     labels:
       - ignore
+  template: |
+    # Changelog
+
+    All notable changes to this project will be documented in this file.
+
+    The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+    and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+    {% for category in categories %}
+    ## {{ category.title }}
+
+    {% for label in category.labels %}
+    {% assign issues = commits | filter: "labels", label %}
+    {% if issues.size > 0 %}
+    ### {{ label }}
+
+    {% for issue in issues %}
+    - {{ issue.message }} ([#{{ issue.number }}]({{ issue.url }}))
+    {% endfor %}
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
