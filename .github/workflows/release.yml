@@ -80,7 +80,7 @@ jobs:
             }')
 
           echo "$last_real_tag"
-          echo "$notes_data"
+          echo "data: $notes_data"
 
           # Extraer los release notes generados
           release_notes=$(echo "$notes_data" | jq -r '.body')
