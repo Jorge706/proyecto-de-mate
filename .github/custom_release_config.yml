@@ -3,15 +3,12 @@ changelog:
     - title: 🚀 Featuressss
       labels:
         - feature
-      change-template: "- [${{CHANGE_TITLE}}](${{CHANGE_URL}}) by @${{AUTHOR}}"
     - title: 🐞 Bug Fixes
       labels:
         - bug
-      change-template: "- [${{CHANGE_TITLE}}](${{CHANGE_URL}}) by @${{AUTHOR}}"
     - title: 🔧 Others
       labels:
         - other
-      change-template: "- [${{CHANGE_TITLE}}](${{CHANGE_URL}}) by @${{AUTHOR}}"
   sort: DESC
   exclude:
     labels:
