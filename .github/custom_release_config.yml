@@ -13,3 +13,10 @@ changelog:
   exclude:
     labels:
       - ignore
+  template: |
+    {% for category in changelog.categories %}
+    ### {{ category.title }}
+    {% for pull in category.items %}
+    * [{{ pull.title }}]({{ pull.html_url }}) by @{{ pull.author.login }}
+    {% endfor %}
+    {% endfor %}
