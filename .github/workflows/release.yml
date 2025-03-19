@@ -87,6 +87,11 @@ jobs:
           RELEASE_NOTES=$(echo "$notes_data" | jq -r '.body')
           echo "$RELEASE_NOTES" > release_notes.md
 
+      - name: Post-process Release Notes
+        run: |
+          sed -i 's/\* \(.*\) by @\([^ ]*\) in \(https:\/\/github.com\/[^ ]*\)/\* [\1](\3) by @\2/' release_notes.md
+
+
       - name: Create Release with Generated Notes
         id: create_release
         uses: actions/create-release@v1
