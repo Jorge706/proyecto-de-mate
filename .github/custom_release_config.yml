@@ -1,22 +1,43 @@
 changelog:
+  template: |
+    <!-- Release notes generated using configuration in .github/custom_release_config.yml at main -->
+
+    ## What's Changed
+
+    ### 🚀 Features
+    $CHANGES_FEATURES
+
+    ### 🐞 Bug Fixes
+    $CHANGES_BUGS
+
+    ### 🔧 Others
+    $CHANGES_OTHERS
+
+    ## New Contributors
+    $CONTRIBUTORS
+
+    **Full Changelog**: https://github.com/Jorge706/proyecto-de-mate/compare/@PREVIOUS_TAG@...@RELEASE_VERSION@
+
   categories:
-    - title: 🚀 Featureeees
+    - title: 🚀 Features
       labels:
         - feature
+      prefix: "* "
+      change-template: "[#${NUMBER} ${TITLE}](https://github.com/Jorge706/proyecto-de-mate/pull/${NUMBER}) by @${AUTHOR}"
+    
     - title: 🐞 Bug Fixes
       labels:
         - bug
+      prefix: "* "
+      change-template: "[#${NUMBER} ${TITLE}](https://github.com/Jorge706/proyecto-de-mate/pull/${NUMBER}) by @${AUTHOR}"
+
     - title: 🔧 Others
       labels:
         - other
+      prefix: "* "
+      change-template: "[#${NUMBER} ${TITLE}](https://github.com/Jorge706/proyecto-de-mate/pull/${NUMBER}) by @${AUTHOR}"
+
   sort: DESC
   exclude:
     labels:
       - ignore
-  template: |
-    {% for category in changelog.categories %}
-    ### {{ category.title }}
-    {% for pull in category.items %}
-    * [{{ pull.title }}]({{ pull.html_url }}) by @{{ pull.author.login }}
-    {% endfor %}
-    {% endfor %}
