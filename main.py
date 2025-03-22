@@ -441,4 +441,23 @@ tk.Button(root, text='Reiniciar', font=("Arial", 18), command=reiniciar).grid(ro
 descripcion = "Ingrese la ecuación en términos de x e y. Establezca los valores iniciales (x0, y0), el paso (h) y el valor final (xn). Seleccione un método y presione 'Resolver'."
 tk.Label(root, text=descripcion, font=("Arial", 16), wraplength=580, justify='left').grid(row=11, column=0, columnspan=3, pady=10)
 
+# Añadir instrucciones al programa
+instrucciones = """
+Instrucciones de uso:
+1. Ingrese la ecuación diferencial en el campo 'dy/dx='. Ejemplo: x + y, x**2 - y, -2*y.
+   - Use ** para exponentes (por ejemplo, x**2) y * para multiplicaciones explícitas (por ejemplo, 2*x).
+2. Establezca los valores iniciales:
+   - x0: Valor inicial de x. Ejemplo: 0.
+   - y0: Valor inicial de y (excepto para Newton-Raphson). Ejemplo: 1.
+3. Defina el paso (h) y el valor final (xn) para los métodos Euler y Runge-Kutta.
+   - h: Tamaño del paso. Ejemplo: 0.1.
+   - xn: Valor final de x. Ejemplo: 2.
+4. Si selecciona Newton-Raphson, ingrese la tolerancia en el campo 'tolerancia'. Ejemplo: 1e-7.
+5. Seleccione un método de solución:
+   - Euler Mejorado, Runge-Kutta o Newton-Raphson.
+6. Presione 'Resolver' para calcular los resultados.
+7. Presione 'Reiniciar' para limpiar los campos y empezar de nuevo.
+"""
+tk.Label(root, text=instrucciones, font=("Arial", 14), wraplength=600, justify='left').grid(row=12, column=0, columnspan=3, pady=10)
+
 root.mainloop()
