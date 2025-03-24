@@ -21,3 +21,4 @@ Para ejecutar el script, abre la terminal en la carpeta donde se encuentra el ar
 ```bash
 python3 main.py
 ```
+
