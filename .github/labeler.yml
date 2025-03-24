@@ -1,4 +1,4 @@
 feature_testosti:
 - head-branch: ['^prueba_testosti']
 feature_test:
-- head-branch: ['^prueba_test']
+- head-branch: ['^prueba_test(?!osti)']
